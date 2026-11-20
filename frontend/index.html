@@ -1,0 +1,2492 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>ALINA — Asistente para mezclas de concreto</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="api-url" content="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+<style>
+/* ══ TOKENS ═══════════════════════════════════════════════════ */
+:root {
+  --yr:#0B4F9C; --yr-dk:#07356B; --yr-lt:#2E75B6; --yr-xlt:rgba(11,79,156,.08);
+  --gray-900:#0D0E10; --gray-800:#1A1C1F; --gray-700:#252830; --gray-600:#2F3340;
+  --gray-500:#3E4252; --gray-400:#636878; --gray-300:#8C93A4; --gray-200:#C5C9D4;
+  --gray-100:#E8EAF0; --gray-50:#F4F5F8;
+  --accent-orange:#E87722; --accent-teal:#00B8D9; --green:#2DBD74; --amber:#F59E0B; --danger:#EF4444;
+  --bg:var(--gray-50); --bg-card:#FFFFFF; --bg-sidebar:var(--gray-900);
+  --fg:var(--gray-900); --fg-2:var(--gray-400); --fg-3:var(--gray-300);
+  --border:#E0E3EA; --border-strong:#CBD0DC;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.06);
+  --shadow-sm:0 2px 6px rgba(0,0,0,.08),0 0 1px rgba(0,0,0,.04);
+  --shadow-md:0 6px 16px rgba(0,0,0,.10),0 1px 3px rgba(0,0,0,.06);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.14),0 2px 8px rgba(0,0,0,.08);
+  --shadow-red:0 4px 14px rgba(11,79,156,.28);
+  --radius-sm:6px; --radius-md:10px; --radius-lg:14px;
+  color-scheme:light;
+}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:var(--gray-900); --bg-card:var(--gray-800); --bg-sidebar:#08090A;
+  --fg:#F0F2F8; --fg-2:var(--gray-300); --fg-3:var(--gray-400);
+  --border:var(--gray-600); --border-strong:var(--gray-500);
+  --shadow-sm:0 2px 6px rgba(0,0,0,.35); --shadow-md:0 6px 16px rgba(0,0,0,.5); --shadow-lg:0 12px 40px rgba(0,0,0,.7);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:var(--gray-900); --bg-card:var(--gray-800); --bg-sidebar:#08090A;
+  --fg:#F0F2F8; --fg-2:var(--gray-300); --fg-3:var(--gray-400);
+  --border:var(--gray-600); --border-strong:var(--gray-500);
+  --shadow-sm:0 2px 6px rgba(0,0,0,.35); --shadow-md:0 6px 16px rgba(0,0,0,.5); --shadow-lg:0 12px 40px rgba(0,0,0,.7);
+  color-scheme:dark;
+}
+
+/* ══ RESET ════════════════════════════════════════════════════ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--fg);min-height:100vh;-webkit-font-smoothing:antialiased;}
+button{cursor:pointer;font-family:inherit;}
+input,select{font-family:inherit;}
+svg{display:block;}
+
+/* ══ ANIMATIONS ═══════════════════════════════════════════════ */
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-8px);}to{opacity:1;transform:translateX(0);}}
+@keyframes barGrow{from{width:0;}to{width:var(--w);}}
+@keyframes countUp{from{opacity:0;transform:scale(.85);}to{opacity:1;transform:scale(1);}}
+@keyframes shimmer{0%{background-position:-200% 0;}100%{background-position:200% 0;}}
+
+.fade-up{animation:fadeUp .4s cubic-bezier(.4,0,.2,1) both;}
+.fade-up-2{animation:fadeUp .4s .08s cubic-bezier(.4,0,.2,1) both;}
+.fade-up-3{animation:fadeUp .4s .16s cubic-bezier(.4,0,.2,1) both;}
+.fade-up-4{animation:fadeUp .4s .24s cubic-bezier(.4,0,.2,1) both;}
+
+/* ══ LAYOUT ═══════════════════════════════════════════════════ */
+.app{display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ─────────────────────────────────────────────────── */
+.sidebar{
+  width:248px;flex-shrink:0;background:var(--bg-sidebar);
+  display:flex;flex-direction:column;
+  border-right:1px solid rgba(255,255,255,.04);
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+
+/* Brand */
+.sidebar-brand{
+  padding:22px 20px 18px;
+  border-bottom:1px solid rgba(255,255,255,.05);
+  background:linear-gradient(180deg,rgba(11,79,156,.16) 0%,transparent 100%);
+}
+.brand-row{display:flex;align-items:center;gap:13px;}
+.brand-logo{
+  width:42px;height:42px;
+  background:linear-gradient(135deg,var(--yr) 0%,var(--yr-dk) 100%);
+  border-radius:11px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;font-weight:900;color:#fff;flex-shrink:0;
+  box-shadow:0 3px 10px rgba(193,39,45,.5);
+  letter-spacing:-1px;
+  font-family:'Inter',sans-serif;
+  position:relative;
+  overflow:hidden;
+}
+.brand-logo::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15) 0%,transparent 60%);
+}
+.brand-logo{text-decoration:none;background:#fff;box-shadow:0 3px 10px rgba(11,79,156,.28);}
+.brand-logo img{width:34px;height:34px;object-fit:contain;position:relative;z-index:1;}
+.brand-logo::after{background:transparent;}
+.brand-name{color:#fff;font-size:16.5px;font-weight:800;letter-spacing:-.4px;line-height:1;}
+.brand-sub{color:#FFFFFF;font-size:10px;letter-spacing:1.8px;text-transform:uppercase;margin-top:3px;}
+.brand-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:10px;padding:4px 9px 4px 7px;
+  background:rgba(193,39,45,.18);border:1px solid rgba(193,39,45,.3);
+  border-radius:20px;font-size:9.5px;font-weight:600;color:rgba(255,255,255,.7);
+  letter-spacing:.3px;
+}
+.brand-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--yr);}
+
+/* Nav */
+.sidebar-section{padding:14px 10px 6px;}
+.sidebar-section-label{
+  color:rgba(255,255,255,.18);font-size:9.5px;
+  letter-spacing:2px;text-transform:uppercase;
+  padding:0 10px 8px;font-weight:600;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;border-radius:var(--radius-sm);
+  color:rgba(255,255,255,.45);font-size:13px;font-weight:500;
+  cursor:pointer;transition:all .15s;border:none;background:none;
+  width:100%;text-align:left;position:relative;
+}
+.nav-icon{width:20px;flex-shrink:0;font-size:14px;text-align:center;color:currentColor;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.8);}
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(11,79,156,.32) 0%,rgba(11,79,156,.10) 100%);
+  color:#fff;
+  border-left:2.5px solid var(--yr);
+}
+.ni{font-size:14px;width:20px;text-align:center;flex-shrink:0;}
+.nav-badge{
+  margin-left:auto;
+  background:var(--yr);color:#fff;
+  font-size:9.5px;font-weight:700;
+  padding:2px 6px;border-radius:10px;min-width:18px;text-align:center;
+}
+.nav-item:not(.active) .nav-badge{background:rgba(255,255,255,.12);color:rgba(255,255,255,.6);}
+
+/* Sidebar footer */
+.sidebar-footer{margin-top:auto;padding:14px 16px;border-top:1px solid rgba(255,255,255,.05);}
+.api-pill{
+  display:flex;align-items:center;gap:9px;
+  background:rgba(255,255,255,.04);border-radius:var(--radius-sm);
+  padding:10px 12px;border:1px solid rgba(255,255,255,.06);
+  cursor:pointer;transition:background .15s;
+}
+.api-pill:hover{background:rgba(255,255,255,.07);}
+.api-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:background .3s;}
+.api-dot.ok{background:var(--green);box-shadow:0 0 0 3px rgba(45,189,116,.2);}
+.api-dot.err{background:var(--danger);animation:pulse 2s infinite;}
+.api-dot.connecting{background:var(--amber);animation:pulse 1s infinite;}
+.api-text-wrap{flex:1;min-width:0;}
+.api-status-main{color:rgba(255,255,255,.7);font-size:11.5px;font-weight:600;display:block;}
+.api-status-sub{color:rgba(255,255,255,.3);font-size:10px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── MAIN ────────────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+/* Topbar */
+.topbar{
+  background:var(--bg-card);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;height:52px;
+  display:flex;align-items:center;justify-content:space-between;
+  box-shadow:var(--shadow-xs);
+  flex-shrink:0;position:sticky;top:0;z-index:20;
+}
+.tb-left{display:flex;align-items:center;gap:8px;}
+.tb-crumb{font-size:12px;color:var(--fg-2);}
+.tb-sep{color:var(--border-strong);font-size:12px;}
+.tb-title{font-size:13.5px;font-weight:700;color:var(--fg);}
+.tb-right{display:flex;align-items:center;gap:6px;}
+.btn-icon{
+  width:32px;height:32px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:transparent;color:var(--fg-2);
+  display:flex;align-items:center;justify-content:center;font-size:13px;
+  cursor:pointer;transition:all .15s;
+}
+.btn-icon:hover{border-color:var(--yr);color:var(--yr);background:var(--yr-xlt);}
+.btn-report{height:32px;padding:0 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--fg-2);font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:6px;}
+.btn-report:not(:disabled):hover{border-color:var(--yr);color:var(--yr);background:var(--yr-xlt);}
+.btn-report:disabled{opacity:.45;cursor:not-allowed;}
+.tb-brand-chip{
+  display:flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:20px;
+  background:var(--yr-xlt);border:1px solid rgba(193,39,45,.2);
+  font-size:11px;font-weight:700;color:var(--yr);
+  letter-spacing:.3px;
+}
+
+/* Content */
+.content{
+  flex:1;overflow-y:auto;
+  padding:22px 24px;
+  padding-left:max(24px,env(safe-area-inset-left,0px));
+  padding-right:max(24px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px;
+}
+.tab-panel{display:none;flex-direction:column;gap:18px;}
+.tab-panel.active{display:flex;}
+
+/* ══ CARDS ════════════════════════════════════════════════════ */
+.card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);
+  transition:border-color .2s,box-shadow .2s,transform .2s;
+}
+.card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md);}
+.card-header{
+  padding:14px 18px 12px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  background:linear-gradient(180deg,rgba(11,79,156,.045),transparent);
+}
+.predictor-layout>.card:first-child{border-top:3px solid var(--accent-orange);}
+.predictor-layout>.card:nth-child(2){border-top:3px solid var(--yr);}
+.card-title{
+  font-size:11px;font-weight:700;color:var(--fg);
+  text-transform:uppercase;letter-spacing:1px;
+  display:flex;align-items:center;gap:7px;
+}
+.card-body{padding:18px;}
+.reference-item{display:grid;grid-template-columns:90px 1fr;gap:14px;padding:14px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.55;}
+.reference-item:first-child{border-top:0;padding-top:0;}
+.reference-type{color:var(--yr);font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding-top:2px;}
+.reference-item span{display:block;color:var(--fg-2);}
+.reference-item a{display:inline-block;margin-top:5px;color:var(--yr);font-size:12px;font-weight:600;text-decoration:none;}
+.reference-item a:hover{text-decoration:underline;}
+.model-switch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.model-switch .form-input{width:auto;min-width:150px;padding:6px 9px;}
+.model-switch-status{font-size:11px;color:var(--fg-2);}
+.exposure-note{margin-top:9px;padding:10px 12px;border-left:3px solid var(--accent-orange);background:var(--yr-xlt);color:var(--fg-2);font-size:12px;line-height:1.5;}
+
+/* ══ INTRO BANNER ═════════════════════════════════════════════ */
+.intro-banner{
+  background:linear-gradient(135deg,#07356B 0%,#0B4F9C 62%,#D96B1D 100%);
+  border-radius:var(--radius-lg);
+  padding:28px 32px;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  border:1px solid rgba(193,39,45,.2);
+  box-shadow:0 4px 24px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.03);
+  position:relative;overflow:hidden;
+}
+.intro-banner::before{
+  content:'';position:absolute;top:-60px;right:-60px;
+  width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(193,39,45,.3) 0%,transparent 70%);
+}
+.intro-banner::after{
+  content:'';position:absolute;bottom:-80px;left:30%;
+  width:300px;height:160px;border-radius:50%;
+  background:radial-gradient(circle,rgba(232,119,34,.1) 0%,transparent 70%);
+}
+.intro-text{position:relative;z-index:1;}
+.intro-eyebrow{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#F7B267;margin-bottom:8px;}
+.intro-title{font-size:22px;font-weight:900;color:#fff;letter-spacing:-.5px;line-height:1.2;margin-bottom:8px;}
+.intro-desc{font-size:13px;color:rgba(255,255,255,.5);max-width:400px;line-height:1.6;}
+.intro-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px;}
+.intro-chip{
+  display:flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:20px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  font-size:10.5px;font-weight:600;color:rgba(255,255,255,.65);
+}
+.intro-stats{
+  position:relative;z-index:1;
+  display:flex;flex-direction:column;gap:10px;flex-shrink:0;min-width:170px;
+}
+.intro-stat{
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radius-md);padding:12px 14px;text-align:center;
+}
+.intro-stat-val{font-size:20px;font-weight:900;font-family:'JetBrains Mono',monospace;color:#fff;}
+.intro-stat-lbl{font-size:9.5px;color:rgba(255,255,255,.4);margin-top:2px;letter-spacing:.5px;text-transform:uppercase;}
+
+/* ══ KPI ROW ══════════════════════════════════════════════════ */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.kpi{
+  border-radius:var(--radius-lg);padding:18px 20px;
+  position:relative;overflow:hidden;
+  transition:transform .2s;
+}
+.kpi:hover{transform:translateY(-2px);}
+.kpi::before{content:'';position:absolute;right:-20px;top:-20px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,.06);}
+.kpi-res{background:linear-gradient(135deg,#1A1C1F 0%,#2A2D35 100%);border:1px solid rgba(255,255,255,.07);}
+.kpi-cost{background:linear-gradient(135deg,#B85416 0%,var(--accent-orange) 100%);border:1px solid rgba(255,255,255,.07);}
+.kpi-co2{background:linear-gradient(135deg,#0b3d24 0%,#1a6b3e 100%);border:1px solid rgba(255,255,255,.07);}
+.kpi-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.45);}
+.kpi-value{font-size:28px;font-weight:800;color:#fff;font-family:'JetBrains Mono',monospace;margin:6px 0 2px;line-height:1;animation:countUp .5s cubic-bezier(.4,0,.2,1);}
+.kpi-unit{font-size:10.5px;color:rgba(255,255,255,.5);}
+.kpi-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  margin-top:10px;font-size:10px;font-weight:600;
+  padding:3px 8px;border-radius:5px;
+  background:rgba(255,255,255,.1);color:rgba(255,255,255,.75);
+}
+.kpi-badge.up{background:rgba(45,189,116,.22);color:#6ee7b7;}
+.kpi-badge.down{background:rgba(239,68,68,.22);color:#fca5a5;}
+
+/* ══ FORM ═════════════════════════════════════════════════════ */
+.predictor-layout{display:grid;grid-template-columns:minmax(340px,370px) minmax(0,760px) minmax(240px,300px);gap:18px;align-items:start;justify-content:start;}
+.predictor-layout>.card:nth-child(2){width:100%;max-width:760px;}
+.design-guide{position:sticky;top:74px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);}
+.design-guide .guide-intro{padding:14px 16px;color:var(--fg-2);font-size:12px;line-height:1.55;border-bottom:1px solid var(--border);}
+.guide-step{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:13px 16px;border-bottom:1px solid var(--border);}
+.guide-step:last-child{border-bottom:0;}
+.guide-number{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--yr-xlt);color:var(--yr);font-size:11px;font-weight:800;}
+.guide-step strong{display:block;font-size:12px;color:var(--fg);margin-bottom:3px;}
+.guide-step span{display:block;color:var(--fg-2);font-size:11px;line-height:1.45;}
+.guide-live{margin:12px 16px;padding:11px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);}
+.guide-live.ready{border-color:rgba(45,189,116,.45);background:rgba(45,189,116,.07);}
+.guide-live.review{border-color:rgba(245,158,11,.45);background:rgba(245,158,11,.08);}
+.guide-live-title{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--fg-2);}
+.guide-live-status{display:block;margin-top:4px;font-size:13px;font-weight:800;color:var(--fg);}
+.guide-live-summary{display:block;margin-top:6px;font-size:11px;line-height:1.45;color:var(--fg-2);}
+.preset-bar{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+.preset-btn{border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg);color:var(--fg-2);padding:6px 9px;font-size:10.5px;font-weight:700;transition:all .15s;}
+.preset-btn:hover,.preset-btn.active{border-color:var(--yr);background:var(--yr-xlt);color:var(--yr);}
+.form-block{margin-bottom:15px;}
+.form-block:last-child{margin-bottom:0;}
+.form-block-title{
+  font-size:9.5px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase;
+  color:var(--fg-2);margin-bottom:10px;
+  display:flex;align-items:center;gap:7px;
+}
+.form-block-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-label{
+  font-size:11px;font-weight:600;color:var(--fg-2);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.form-range{font-size:9.5px;color:var(--fg-3);background:var(--bg);border-radius:4px;padding:1px 5px;}
+.form-input{
+  width:100%;padding:8px 10px;
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--fg);font-size:13px;
+  transition:border-color .15s,box-shadow .15s;
+  appearance:textfield;
+  -moz-appearance:textfield;
+}
+.form-input::-webkit-outer-spin-button,.form-input::-webkit-inner-spin-button{-webkit-appearance:none;}
+.form-input:focus{outline:none;border-color:var(--yr);box-shadow:0 0 0 3px rgba(193,39,45,.1);}
+
+/* Age selector */
+.age-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px;}
+.age-btn{
+  padding:9px 4px;border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--bg);color:var(--fg-2);font-size:12px;font-weight:700;
+  text-align:center;cursor:pointer;transition:all .15s;line-height:1.2;
+}
+.age-btn .age-sub{font-size:9px;font-weight:400;display:block;margin-top:2px;opacity:.65;}
+.age-btn:hover{border-color:var(--yr-lt);color:var(--yr);}
+.age-btn.active{
+  border-color:var(--yr);background:var(--yr);color:#fff;
+  box-shadow:0 2px 8px rgba(193,39,45,.3);
+}
+.age-btn.active .age-sub{opacity:.8;}
+
+/* Ratio indicator */
+.ratio-bar{
+  margin-top:11px;padding:10px 13px;border-radius:var(--radius-sm);
+  background:var(--bg);border:1.5px solid var(--border);
+  display:flex;align-items:center;gap:10px;transition:border-color .3s;
+}
+.ratio-bar.ok{border-color:rgba(45,189,116,.35);}
+.ratio-bar.warn{border-color:rgba(245,158,11,.35);}
+.ratio-bar.bad{border-color:rgba(239,68,68,.35);}
+.ratio-label{font-size:10.5px;font-weight:600;color:var(--fg-2);flex-shrink:0;}
+.ratio-value{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;}
+.ratio-value.ok{color:var(--green);}
+.ratio-value.warn{color:var(--amber);}
+.ratio-value.bad{color:var(--danger);}
+.ratio-note{font-size:10px;color:var(--fg-2);flex:1;text-align:right;}
+
+/* Buttons */
+.btn-primary{
+  width:100%;padding:11px;background:var(--yr);color:#fff;
+  border:none;border-radius:var(--radius-md);font-size:13.5px;font-weight:700;
+  transition:all .15s;margin-top:6px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:var(--shadow-red);letter-spacing:.1px;
+}
+.btn-primary:hover{background:var(--yr-dk);box-shadow:0 6px 18px rgba(193,39,45,.5);transform:translateY(-1px);}
+.btn-primary:active{transform:scale(.98);box-shadow:none;}
+.btn-primary:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;transform:none;}
+.btn-secondary{
+  padding:7px 13px;background:transparent;color:var(--fg);
+  border:1.5px solid var(--border);border-radius:var(--radius-sm);
+  font-size:12px;font-weight:600;transition:all .15s;
+}
+.btn-secondary:hover{border-color:var(--yr-lt);color:var(--yr);background:var(--yr-xlt);}
+.btn-add{
+  display:flex;align-items:center;gap:5px;
+  padding:7px 12px;background:transparent;
+  border:1.5px dashed var(--border);border-radius:var(--radius-sm);
+  font-size:12px;font-weight:600;color:var(--fg-2);transition:all .15s;
+}
+.btn-add:hover{border-color:var(--accent-teal);color:var(--accent-teal);}
+
+/* Spinner */
+.spinner{
+  width:14px;height:14px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;
+}
+
+/* ══ RESULT PANEL ═════════════════════════════════════════════ */
+.result-empty{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:52px 20px;
+  color:var(--fg-2);gap:10px;text-align:center;
+}
+.result-empty-icon{font-size:44px;opacity:.15;}
+
+/* Gauge */
+.gauge-area{display:flex;flex-direction:column;align-items:center;padding:8px 0 0;}
+.gauge-svg{overflow:visible;}
+
+/* Curve */
+.curve-area{height:150px;position:relative;}
+.curve-svg{width:100%;height:100%;overflow:visible;}
+
+/* Alerts */
+.alert{
+  display:flex;align-items:flex-start;gap:9px;
+  padding:10px 13px;border-radius:var(--radius-sm);
+  font-size:12px;margin-top:8px;line-height:1.5;
+}
+.alert-icon{flex-shrink:0;font-size:13px;}
+.alert.warn{background:rgba(245,158,11,.09);border:1px solid rgba(245,158,11,.28);color:#92650a;}
+.alert.info{background:rgba(0,184,217,.07);border:1px solid rgba(0,184,217,.2);color:#0065a8;}
+.alert.ok{background:rgba(45,189,116,.07);border:1px solid rgba(45,189,116,.2);color:#1a5c3a;}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .alert.warn{color:#fcd34d;}.alert.info{color:#67e8f9;}.alert.ok{color:#6ee7b7;}}
+:root[data-theme="dark"] .alert.warn{color:#fcd34d;}
+:root[data-theme="dark"] .alert.info{color:#67e8f9;}
+:root[data-theme="dark"] .alert.ok{color:#6ee7b7;}
+
+/* Detail grid */
+.detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px;}
+.detail-item{
+  display:flex;justify-content:space-between;align-items:center;
+  min-width:0;padding:8px 11px;border-radius:var(--radius-sm);
+  background:var(--bg);border:1px solid var(--border);
+  transition:border-color .15s;
+}
+.detail-item:hover{border-color:var(--border-strong);}
+.di-label{font-size:11.5px;color:var(--fg-2);overflow-wrap:anywhere;}
+.di-value{font-size:11.5px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--fg);text-align:right;overflow-wrap:anywhere;margin-left:8px;} 
+.detail-item-full{grid-column:1/-1;} 
+
+/* ══ OPTIMIZER ════════════════════════════════════════════════ */
+.slider-wrap{margin:8px 0 4px;}
+.slider-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--fg-2);margin-bottom:5px;}
+.slider-display{
+  display:flex;align-items:baseline;gap:6px;margin-bottom:8px;
+}
+.slider-big{font-size:36px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--fg);line-height:1;}
+.slider-small{font-size:13px;font-weight:400;color:var(--fg-2);}
+.slider-hint{font-size:10.5px;color:var(--fg-2);margin-top:2px;}
+input[type=range]{
+  width:100%;height:5px;border-radius:3px;outline:none;cursor:pointer;
+  -webkit-appearance:none;appearance:none;
+  background:var(--border);
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--yr);cursor:pointer;border:3px solid #fff;
+  box-shadow:0 0 0 1px var(--yr),0 2px 6px rgba(193,39,45,.4);
+}
+input[type=range]::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;
+  background:var(--yr);cursor:pointer;border:3px solid #fff;
+  box-shadow:0 2px 6px rgba(193,39,45,.4);
+}
+
+.opt-cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.opt-card{
+  border:1.5px solid var(--border);border-radius:var(--radius-lg);
+  padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;
+  background:var(--bg-card);
+}
+.opt-card:nth-child(2){border-top:3px solid var(--accent-orange);}
+.opt-card:nth-child(3){border-top:3px solid var(--accent-teal);}
+.opt-card:hover{border-color:var(--yr-lt);transform:translateY(-3px);box-shadow:var(--shadow-md);}
+.opt-card.best{
+  border-color:var(--yr);
+  background:linear-gradient(145deg,var(--bg-card) 60%,rgba(193,39,45,.04) 100%);
+  box-shadow:0 4px 20px rgba(193,39,45,.12);
+}
+.opt-card.best::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--yr-dk),var(--yr),var(--yr-lt));
+}
+.opt-card-badge{
+  position:absolute;top:14px;right:14px;
+  font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:1px;
+  padding:3px 8px;border-radius:5px;
+}
+.opt-card.best .opt-card-badge{background:var(--yr);color:#fff;}
+.opt-card:not(.best) .opt-card-badge{background:var(--bg);color:var(--fg-2);border:1px solid var(--border);}
+.opt-rank{font-size:12.5px;font-weight:700;color:var(--fg-2);margin-bottom:9px;}
+.opt-main-val{font-size:28px;font-weight:900;font-family:'JetBrains Mono',monospace;color:var(--fg);}
+.opt-main-unit{font-size:12px;font-weight:400;color:var(--fg-2);}
+.opt-props{display:flex;flex-direction:column;gap:5px;margin-top:12px;}
+.opt-prop{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;}
+.opt-prop-label{color:var(--fg-2);}
+.opt-prop-value{font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--fg);}
+.trade-section{margin-top:14px;border-top:1px solid var(--border);padding-top:11px;}
+.trade-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.trade-icon{font-size:12px;width:16px;flex-shrink:0;}
+.trade-bar-bg{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.trade-bar-fill{height:100%;border-radius:3px;transition:width .9s cubic-bezier(.4,0,.2,1);}
+.trade-val{font-size:10.5px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:58px;text-align:right;color:var(--fg);}
+.opt-load-hint{margin-top:10px;font-size:11px;font-weight:600;color:var(--yr);display:flex;align-items:center;gap:4px;}
+
+/* ══ COMPARE ══════════════════════════════════════════════════ */
+.compare-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;} 
+.compare-toolbar{display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr);gap:12px;margin-bottom:12px;}
+.compare-action-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.compare-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+.compare-summary-item{min-height:72px;padding:12px 14px;border:1px solid var(--border);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;justify-content:center;}
+.compare-summary-label{font-size:9.5px;text-transform:uppercase;font-weight:800;color:var(--fg-2);margin-bottom:5px;}
+.compare-summary-value{font-size:14px;font-weight:800;color:var(--fg);line-height:1.25;}
+.compare-summary-value.decimal{font-family:'JetBrains Mono',monospace;font-size:18px;}
+.compare-table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px;background:var(--bg-card);}
+.compare-table{min-width:980px;}
+.compare-table th{position:sticky;top:0;background:var(--bg-card);z-index:1;} 
+.compare-table td:first-child,.compare-table th:first-child{position:sticky;left:0;background:var(--bg-card);z-index:2;border-right:1px solid var(--border);} 
+.compare-table tbody tr:hover td:first-child{background:var(--bg);} 
+.compare-empty-state{min-height:300px;padding:42px 20px;} 
+.compare-empty-title{font-size:34px;opacity:.12;font-weight:900;} 
+.compare-empty-actions{display:flex;gap:8px;margin-top:4px;} 
+.compare-grid .card{border-radius:8px;} 
+.compare-grid .card-body{min-height:150px;} 
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.bar-label{font-size:11.5px;font-weight:600;min-width:68px;}
+.bar-bg{flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.bar-val{font-size:11.5px;font-family:'JetBrains Mono',monospace;min-width:84px;text-align:right;font-weight:700;color:var(--fg);}
+.compare-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.compare-table th{
+  text-align:left;padding:8px 10px;
+  font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;
+  color:var(--fg-2);border-bottom:2px solid var(--border);
+}
+.compare-table td{padding:9px 10px;border-bottom:1px solid var(--border);}
+.compare-table tr:last-child td{border-bottom:none;}
+.compare-table tr:hover td{background:var(--bg);}
+.mix-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+
+/* ══ HISTORY ══════════════════════════════════════════════════ */
+.hist-item{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 16px;border:1.5px solid var(--border);border-radius:var(--radius-md);
+  cursor:pointer;transition:all .15s;background:var(--bg-card);
+  animation:slideIn .25s ease both;
+}
+.hist-item:hover{border-color:var(--yr-lt);box-shadow:var(--shadow-sm);transform:translateX(2px);}
+.hist-num{
+  width:32px;height:32px;border-radius:50%;
+  color:#fff;font-size:11px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.hist-res{font-size:15px;font-weight:800;font-family:'JetBrains Mono',monospace;}
+.hist-meta{font-size:11px;color:var(--fg-2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tag{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.3px;}
+.tag-green{background:rgba(45,189,116,.1);color:#1a6645;}
+.tag-amber{background:rgba(245,158,11,.1);color:#92650a;}
+.tag-blue{background:rgba(0,184,217,.1);color:#006b8a;}
+.tag-red{background:rgba(193,39,45,.1);color:var(--yr-dk);}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  .tag-green{background:rgba(45,189,116,.18);color:#6ee7b7;}
+  .tag-amber{background:rgba(245,158,11,.18);color:#fcd34d;}
+  .tag-blue{background:rgba(0,184,217,.15);color:#67e8f9;}
+  .tag-red{background:rgba(193,39,45,.18);color:var(--yr-lt);}
+}}
+:root[data-theme="dark"] .tag-green{background:rgba(45,189,116,.18);color:#6ee7b7;}
+:root[data-theme="dark"] .tag-amber{background:rgba(245,158,11,.18);color:#fcd34d;}
+:root[data-theme="dark"] .tag-blue{background:rgba(0,184,217,.15);color:#67e8f9;}
+:root[data-theme="dark"] .tag-red{background:rgba(193,39,45,.18);color:var(--yr-lt);}
+
+/* ══ MODEL TAB ════════════════════════════════════════════════ */
+.metric-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.metric-card{
+  border-radius:var(--radius-md);padding:15px 16px;
+  border:1px solid var(--border);background:var(--bg-card);
+  transition:transform .15s,box-shadow .15s;
+}
+.metric-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.mc-label{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--fg-2);}
+.mc-value{font-size:22px;font-weight:800;font-family:'JetBrains Mono',monospace;margin:5px 0 3px;color:var(--fg);}
+.mc-desc{font-size:10px;color:var(--fg-2);}
+.metric-card.highlight{background:var(--yr);border-color:var(--yr);box-shadow:var(--shadow-red);}
+.metric-card.highlight .mc-label,.metric-card.highlight .mc-value,.metric-card.highlight .mc-desc{color:#fff;}
+.metric-card.highlight .mc-label,.metric-card.highlight .mc-desc{opacity:.75;}
+
+.pipeline-steps{display:flex;align-items:center;overflow-x:auto;padding:8px 0;}
+.pipeline-step{
+  display:flex;flex-direction:column;align-items:center;
+  min-width:110px;padding:14px 10px;border-radius:var(--radius-md);
+  border:1.5px solid var(--border);background:var(--bg-card);
+  text-align:center;gap:7px;transition:border-color .15s,box-shadow .15s;
+}
+.pipeline-step:hover{border-color:var(--yr-lt);box-shadow:var(--shadow-sm);}
+.ps-icon{font-size:22px;}
+.ps-label{font-weight:700;color:var(--fg);font-size:11.5px;}
+.ps-desc{color:var(--fg-2);font-size:10px;line-height:1.4;}
+.pipeline-arrow{
+  color:var(--yr);font-size:16px;padding:0 6px;flex-shrink:0;opacity:.6;
+}
+.class-table{width:100%;border-collapse:collapse;font-size:12px;}
+.class-table td{padding:7px 10px;border-bottom:1px solid var(--border);}
+.class-table tr:last-child td{border-bottom:none;}
+.class-table tr:hover td{background:var(--bg);}
+.class-table tr.highlight-row td{background:rgba(193,39,45,.05);}
+.class-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+
+/* ══ TOAST ════════════════════════════════════════════════════ */
+.toast{
+  position:fixed;bottom:20px;right:20px;z-index:2000;
+  background:var(--gray-800);color:#fff;
+  padding:11px 16px;border-radius:var(--radius-md);
+  font-size:12.5px;font-weight:500;box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:8px;max-width:320px;
+  transform:translateY(90px) scale(.95);opacity:0;
+  transition:all .25s cubic-bezier(.4,0,.2,1);
+  border:1px solid rgba(255,255,255,.07);
+}
+.toast.show{transform:translateY(0) scale(1);opacity:1;}
+.toast-line{width:3px;height:100%;border-radius:2px;background:var(--yr);flex-shrink:0;align-self:stretch;}
+
+/* Error box */
+.err-box{
+  background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.22);
+  border-radius:var(--radius-sm);padding:12px 14px;
+  font-size:12.5px;color:var(--danger);margin-top:8px;
+}
+
+/* ══ RESPONSIVE ═══════════════════════════════════════════════ */
+@media(max-width:980px){
+  .sidebar{width:64px;}
+  .brand-name,.brand-sub,.brand-tag,.nav-item>.nav-label,.nav-badge,
+  .sidebar-footer .api-text-wrap,.sidebar-section-label{display:none;}
+  .nav-item{justify-content:center;padding:12px 8px;}
+  .sidebar-brand{padding:14px 8px;}
+  .brand-logo{width:36px;height:36px;font-size:18px;}
+  .predictor-layout{grid-template-columns:1fr;}
+  .kpi-row{grid-template-columns:1fr 1fr;}
+  .opt-cards-grid{grid-template-columns:1fr;}
+  .metric-cards{grid-template-columns:1fr 1fr;}
+  .intro-banner{flex-direction:column;padding:22px 20px;}
+  .intro-stats{flex-direction:row;min-width:auto;}
+  .intro-stat{flex:1;}
+  .compare-summary{grid-template-columns:repeat(3,minmax(150px,1fr));overflow-x:auto;padding-bottom:2px;}
+  .compare-summary-item{min-width:150px;}
+}
+
+@media(max-width:640px){
+  .kpi-row{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .compare-grid{grid-template-columns:1fr;}
+  .compare-toolbar{grid-template-columns:1fr;}
+  .compare-summary{grid-template-columns:1fr;overflow-x:visible;}
+  .compare-summary-item{min-width:0;}
+  .detail-grid{grid-template-columns:1fr;}
+  .detail-item-full{grid-column:auto;}
+  .compare-action-row{align-items:stretch;}
+  .compare-action-row > button{flex:1 1 auto;}
+  .metric-cards{grid-template-columns:1fr 1fr;}
+  .intro-title{font-size:18px;}
+}
+</style>
+
+<div class="app">
+  <!-- ══ SIDEBAR ══════════════════════════════════════════════ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-row">
+        <a class="brand-logo" href="https://alina.incamaps.com/" target="_blank" rel="noopener noreferrer" title="Abrir ALINA">
+          <img src="alina-icon.png" alt="ALINA">
+        </a>
+        <div>
+          <div class="brand-name">ALINA</div>
+          <div class="brand-sub">Asistente para mezclas de concreto</div>
+        </div>
+      </div>
+      <div class="brand-tag">
+       
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Herramientas</div>
+      <button class="nav-item active" data-tab="predictor" onclick="switchTab('predictor',this)">
+        <i class="bi bi-speedometer2 nav-icon" aria-hidden="true"></i><span class="nav-label">Predictor</span>
+      </button>
+      <button class="nav-item" data-tab="optimizer" onclick="switchTab('optimizer',this)">
+        <i class="bi bi-sliders2 nav-icon" aria-hidden="true"></i><span class="nav-label">Optimizador</span>
+      </button>
+      <button class="nav-item" data-tab="compare" onclick="switchTab('compare',this)">
+        <i class="bi bi-columns-gap nav-icon" aria-hidden="true"></i><span class="nav-label">Comparar</span>
+        <span class="nav-badge" id="badge-compare">0</span>
+      </button>
+      <button class="nav-item" data-tab="history" onclick="switchTab('history',this)">
+        <i class="bi bi-clock-history nav-icon" aria-hidden="true"></i><span class="nav-label">Historial</span>
+        <span class="nav-badge" id="badge-history">0</span>
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Técnico</div>
+      <button class="nav-item" data-tab="model" onclick="switchTab('model',this)">
+        <i class="bi bi-cpu nav-icon" aria-hidden="true"></i><span class="nav-label">Modelo ML</span>
+      </button>
+      <button class="nav-item" data-tab="references" onclick="switchTab('references',this)">
+        <i class="bi bi-journal-text nav-icon" aria-hidden="true"></i><span class="nav-label">Referencias</span>
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="api-pill" onclick="checkAPI()" title="Reconectar">
+        <div class="api-dot connecting" id="api-dot"></div>
+        <div class="api-text-wrap">
+          <span class="api-status-main" id="api-status-text">Conectando...</span>
+          <span class="api-status-sub" id="api-model-text">127.0.0.1:8000</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ════════════════════════════════════════════════ -->
+  <main class="main">
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="tb-left">
+        <span class="tb-crumb">ALINA</span>
+        <span class="tb-sep">/</span>
+        <span class="tb-title" id="topbar-title">Predictor de Resistencia</span>
+      </div>
+      <div class="tb-right">
+        <div class="tb-brand-chip"><span id="top-model-name">Modelo seleccionado</span> · R²&nbsp;<span id="top-model-r2">0.8640</span></div>
+        <button class="btn-report" id="report-btn" onclick="downloadReport()" disabled><i class="bi bi-file-earmark-text" aria-hidden="true"></i> Informe</button>
+        <button class="btn-secondary" id="save-btn" onclick="saveCurrentEvaluation()" disabled><i class="bi bi-floppy" aria-hidden="true"></i> Guardar</button>
+        <button class="btn-icon" onclick="addToCompare()" title="Agregar al comparador"><i class="bi bi-plus-lg" aria-hidden="true"></i></button>
+        <button class="btn-icon theme-btn" onclick="toggleTheme()" id="theme-btn" title="Cambiar tema"><i class="bi bi-circle-half" aria-hidden="true"></i></button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ══════════════ PREDICTOR ══════════════════════════ -->
+      <div id="tab-predictor" class="tab-panel active">
+
+        <!-- Intro banner (se oculta tras primera predicción) -->
+        <div class="intro-banner fade-up" id="intro-banner">
+          <div class="intro-text">
+            <div class="intro-eyebrow">ALINA · Reto Yura · Innova Sur 2026</div>
+            <div class="intro-title">Asistente para mezclas<br>de concreto</div>
+            <div class="intro-desc">
+              Ingresa la dosificación de tu mezcla y obtén la resistencia a la compresión,
+              costo y huella de CO₂ en segundos, potenciado por XGBoost.
+            </div>
+            <div class="intro-chips">
+              <span class="intro-chip">NTE E.060 Perú</span>
+              <span class="intro-chip">ACI 318</span>
+              <span class="intro-chip">1,030 muestras</span>
+              <span class="intro-chip">&lt;100ms inferencia</span>
+            </div>
+          </div>
+          <div class="intro-stats">
+            <div class="intro-stat">
+              <div class="intro-stat-val">86.4%</div>
+              <div class="intro-stat-lbl">Precisión R²</div>
+            </div>
+            <div class="intro-stat">
+              <div class="intro-stat-val">±2.8</div>
+              <div class="intro-stat-lbl">MPa error medio</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div class="kpi-row fade-up" id="kpi-row" style="display:none">
+          <div class="kpi kpi-res">
+            <div class="kpi-label">Resistencia</div>
+            <div class="kpi-value" id="kpi-mpa">—</div>
+            <div class="kpi-unit" id="kpi-kgcm2-unit">MPa</div>
+            <div class="kpi-badge" id="kpi-res-badge"></div>
+          </div>
+          <div class="kpi kpi-cost">
+            <div class="kpi-label">Costo / m³</div>
+            <div class="kpi-value" id="kpi-cost">—</div>
+            <div class="kpi-unit">S/. por metro cúbico</div>
+            <div class="kpi-badge" id="kpi-cost-badge"></div>
+          </div>
+          <div class="kpi kpi-co2">
+            <div class="kpi-label">Huella CO₂</div>
+            <div class="kpi-value" id="kpi-co2">—</div>
+            <div class="kpi-unit">kg CO₂-eq / m³</div>
+            <div class="kpi-badge ok" id="kpi-co2-badge"></div>
+          </div>
+        </div>
+
+        <!-- Form + Result -->
+        <div class="predictor-layout">
+          <!-- FORM -->
+          <div class="card fade-up-2">
+            <div class="card-header">
+              <span class="card-title">Dosificación kg/m³</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <input type="file" id="pdf-import-file" accept="application/pdf,.pdf" hidden onchange="importPdfData(this)">
+                <button class="btn-secondary" type="button" onclick="$('pdf-import-file').click()">Importar PDF</button>
+                <button class="btn-secondary" onclick="resetForm()">Restablecer</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <input type="hidden" id="f-slag" value="0">
+              <input type="hidden" id="f-flyash" value="0">
+              <input type="hidden" id="f-superp" value="0">
+              <input type="hidden" id="f-cement-type" value="Yura IP">
+              <input type="hidden" id="f-sika" value="Ninguno">
+              <input type="hidden" id="f-exposure" value="normal">
+              <input type="hidden" id="f-responsible" value="Equipo ALINA">
+              <input type="hidden" id="f-slump-unit" value="mm">
+
+              <div class="form-block">
+                <div class="form-block-title">Identificación del proyecto</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label" for="f-project">Proyecto</label>
+                    <input class="form-input" id="f-project" value="" maxlength="100" placeholder="Nombre del proyecto">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="f-method">Método de diseño</label>
+                    <input class="form-input" id="f-method" value="" maxlength="80" placeholder="Ej. Bolomey">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Tamaño máximo nominal</label>
+                    <input class="form-input" type="number" id="f-max-nominal" value="" min="4.75" max="50" step="0.01" placeholder="mm">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Tamaño máximo curva</label>
+                    <input class="form-input" type="number" id="f-max-curva" value="" min="4.75" max="50" step="0.01" placeholder="mm">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Malla de referencia</label>
+                    <input class="form-input" type="number" id="f-malla" value="" min="0.075" max="50" step="0.01" placeholder="mm">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Resistencia solicitada</label>
+                    <input class="form-input" type="number" id="f-strength" value="" min="100" max="700" step="1" placeholder="kg/cm²">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">K1</label>
+                    <input class="form-input" type="number" id="f-k1" value="" min="0" max="1" step="0.00001" placeholder="0.00375">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Coeficiente de curva</label>
+                    <input class="form-input" type="number" id="f-coefficient" value="" min="0" max="100" step="0.01" placeholder="Coeficiente">
+                  </div>
+                </div>
+              </div>
+              <div class="form-block">
+                <div class="form-block-title">Dosificación del diseño</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Cemento<span class="form-range">kg/m³</span></label>
+                    <input class="form-input" type="number" id="f-cement" value="" min="100" max="600" step="0.01" placeholder="kg/m³" oninput="onFormChange()">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Agua<span class="form-range">kg/m³</span></label>
+                    <input class="form-input" type="number" id="f-water" value="" min="100" max="260" step="0.01" placeholder="kg/m³" oninput="onFormChange()">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Agregado grueso<span class="form-range">kg/m³</span></label>
+                    <input class="form-input" type="number" id="f-coarse" value="" min="700" max="1200" step="0.01" placeholder="kg/m³" oninput="onFormChange()">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Agregado fino<span class="form-range">kg/m³</span></label>
+                    <input class="form-input" type="number" id="f-fine" value="" min="500" max="1050" step="0.01" placeholder="kg/m³" oninput="onFormChange()">
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-block">
+                <div class="form-block-title">Asentamiento objetivo</div>
+                <div class="form-group">
+                  <label class="form-label">Asentamiento<span class="form-range">mm</span></label>
+                  <input class="form-input" type="number" id="f-slump-value" value="" min="0" max="250" step="0.1" placeholder="mm" oninput="updateGuide()">
+                </div>
+              </div>
+
+
+              <div class="form-block" style="margin-top:14px">
+                <div class="form-block-title">Edad de ensayo</div>
+                <div class="age-grid">
+                  <button class="age-btn" onclick="setAge(1,this)">1 día<span class="age-sub">Inicial</span></button>
+                  <button class="age-btn" onclick="setAge(3,this)">3 días<span class="age-sub">Temprana</span></button>
+                  <button class="age-btn" onclick="setAge(7,this)">7 días<span class="age-sub">Control</span></button>
+                  <button class="age-btn" onclick="setAge(14,this)">14 días<span class="age-sub">Intermedia</span></button>
+                  <button class="age-btn active" onclick="setAge(28,this)">28 días<span class="age-sub">Diseño</span></button>
+                </div>
+              </div>
+
+              <button class="btn-primary" id="pred-btn" onclick="predict()">
+                <span id="pred-lbl">Predecir Resistencia</span>
+                <span class="spinner" id="pred-spin" hidden></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- RESULT -->
+          <div class="card fade-up-3">
+            <div class="card-header">
+              <span class="card-title">Resultado técnico preliminar</span>
+              <span id="result-cls-badge" hidden></span>
+            </div>
+            <div style="padding:9px 18px;border-bottom:1px solid var(--border);font-size:11px;color:var(--fg-2)">Predicción estadística XGBoost · verificación orientativa de durabilidad · requiere validación de laboratorio</div>
+            <div class="card-body" id="result-body">
+              <div class="result-empty">
+                <div class="result-empty-icon">--</div>
+                <p style="font-size:13px;font-weight:600;color:var(--fg)">Sin predicción aún</p>
+                <p style="font-size:12px">Completa la dosificación y presiona <strong>Predecir Resistencia</strong></p>
+              </div>
+            </div>
+          </div>
+
+          <aside class="design-guide" aria-label="Guía de diseño">
+            <div class="card-header"><span class="card-title">Guía de diseño</span></div>
+            <div class="guide-intro">Usa estos cuatro controles para interpretar una mezcla antes de validarla en laboratorio.</div>
+            <div class="guide-live" id="guide-live">
+              <span class="guide-live-title">Estado actual</span>
+              <strong class="guide-live-status" id="guide-live-status">Revisión pendiente</strong>
+              <span class="guide-live-summary" id="guide-live-summary">Completa los parámetros para ver un resumen.</span>
+            </div>
+            <div class="guide-step">
+              <div class="guide-number">1</div>
+              <div><strong>Define la resistencia</strong><span>Selecciona la edad de diseño y revisa el resultado en MPa y kg/cm².</span></div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-number">2</div>
+              <div><strong>Revisa la exposición</strong><span>Sulfatos, cloruros y ácidos cambian los requisitos de durabilidad.</span></div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-number">3</div>
+              <div><strong>Controla el asentamiento</strong><span>El valor se expresa en mm y debe comprobarse con un ensayo de slump.</span></div>
+            </div>
+            <div class="guide-step">
+              <div class="guide-number">4</div>
+              <div><strong>Valida la propuesta</strong><span>Confirma materiales, aditivo, curado y normas antes de usarla en obra.</span></div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- ══════════════ OPTIMIZER ════════════════════════════ -->
+      <div id="tab-optimizer" class="tab-panel">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Configurar Optimización</span></div>
+          <div class="card-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+              <div>
+                <div class="form-block-title">Resistencia objetivo f'c</div>
+                <div class="slider-display">
+                  <span class="slider-big" id="opt-slider-val">210</span>
+                  <span class="slider-small">kg/cm²</span>
+                </div>
+                <div class="slider-hint" id="opt-slider-class">Clase estructural estándar — vigas y columnas</div>
+                <div class="slider-wrap" style="margin-top:10px">
+                  <input type="range" id="opt-slider" min="100" max="700" value="210" step="0.01"
+                    oninput="updateSlider(this.value)">
+                  <div class="slider-labels">
+                    <span>100</span><span>f'c 175</span><span>f'c 210</span><span>f'c 280</span><span>700</span>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="form-block-title">Parámetros adicionales</div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label">Agua (L/m³)</label>
+                    <input class="form-input" type="number" id="opt-water" value="185" min="120" max="250" step="5">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Edad (días)</label>
+                    <select class="form-input" id="opt-age">
+                      <option value="1">1 día</option>
+                      <option value="3">3 días</option>
+                      <option value="7">7 días</option>
+                      <option value="14">14 días</option>
+                      <option value="28" selected>28 días</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="grid-column:1/-1">
+                    <label class="form-label">Cemento máximo (kg/m³)</label>
+                    <input class="form-input" type="number" id="opt-maxcement" value="500" min="200" max="600" step="10">
+                  </div>
+                  <div class="form-group" style="grid-column:1/-1">
+                    <label class="form-label">Exposición ambiental</label>
+                    <select class="form-input" id="opt-exposure">
+                      <option value="normal">Sin exposición especial</option>
+                      <option value="sulfatos">Sulfatos altos en suelo o agua</option>
+                      <option value="cloruros">Cloruros o ambiente marino</option>
+                      <option value="acidos">Medio ácido</option>
+                    </select>
+                  </div>
+                </div>
+                <div style="display:flex;gap:18px;margin-top:11px">
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;user-select:none">
+                    <input type="checkbox" id="opt-slag" style="accent-color:var(--yr)">Escoria BFS
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;cursor:pointer;user-select:none">
+                    <input type="checkbox" id="opt-flyash" style="accent-color:var(--yr)">Ceniza volante
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top:18px;border-top:1px solid var(--border);padding-top:16px">
+              <button class="btn-primary" style="width:auto;padding:10px 32px;margin-top:0" id="opt-btn" onclick="optimize()">
+                <span id="opt-lbl">Optimizar mezcla con IA</span>
+                <span class="spinner" id="opt-spin" hidden></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div id="opt-results" hidden>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Mezclas Óptimas Generadas</span>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span id="opt-result-meta" style="font-size:11.5px;color:var(--fg-2)"></span>
+                <button class="btn-secondary" onclick="addOptimizedToCompare()">Agregar alternativas</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="opt-cards-grid" id="opt-cards"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════ COMPARE ═══════════════════════════════ -->
+      <div id="tab-compare" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Comparador de Mezclas</span>
+            <div style="display:flex;gap:8px">
+              <button class="btn-add" onclick="addToCompare()">Agregar actual</button>
+              <button class="btn-secondary" onclick="clearCompare()">Limpiar</button>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="compare-toolbar">
+              <div class="form-group">
+                <label class="form-label" for="compare-context">Contexto común</label>
+                <select class="form-select" id="compare-context">
+                  <option value="normal">Sin exposición especial</option>
+                  <option value="sulfatos">Sulfatos altos</option>
+                  <option value="cloruros">Cloruros o ambiente marino</option>
+                  <option value="acidos">Medio ácido</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="compare-reference">Referencia</label>
+                <select class="form-select" id="compare-reference"><option value="0">Primera mezcla</option></select>
+              </div>
+            </div>
+            <div id="compare-summary" class="compare-summary" hidden></div>
+            <div class="compare-action-row">
+              <button class="btn-add" onclick="compareWithApi()">Comparar con API</button>
+              <button class="btn-secondary" onclick="loadSavedEvaluationsToCompare()">Cargar guardadas</button>
+              <button class="btn-secondary" onclick="downloadComparisonPdf()">Descargar PDF comparación</button>
+              <span id="compare-api-status" style="font-size:11px;color:var(--fg-2);align-self:center"></span>
+            </div>
+            <div id="compare-empty" class="compare-empty-state" style="display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--fg-2);gap:9px">
+              <div class="compare-empty-title">COMPARAR</div>
+              <p style="font-size:13px;text-align:center">Agrega predicciones del Predictor o usa las alternativas optimizadas.</p>
+              <div class="compare-empty-actions">
+                <button type="button" class="btn-add" onclick="addToCompare()">Agregar predicción actual</button>
+                <button type="button" class="btn-secondary" onclick="switchTab('optimizer',document.querySelector('[data-tab=optimizer]'))">Ir al optimizador</button>
+              </div>
+            </div>
+            <div id="compare-table-wrap" class="compare-table-wrap" hidden><table class="compare-table" id="compare-table"></table></div>
+          </div>
+        </div>
+        <div id="compare-charts-wrap" hidden>
+          <div class="compare-grid">
+            <div class="card"><div class="card-header"><span class="card-title">Resistencia kg/cm²</span></div><div class="card-body" id="cc-res"></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Costo S/./m³</span></div><div class="card-body" id="cc-cost"></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">CO₂ kg/m³</span></div><div class="card-body" id="cc-co2"></div></div>
+            <div class="card"><div class="card-header"><span class="card-title">Cemento kg/m³</span></div><div class="card-body" id="cc-cement"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════ HISTORY ════════════════════════════════ -->
+      <div id="tab-history" class="tab-panel">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Historial de Predicciones</span>
+            <button class="btn-secondary" onclick="clearHistory()">Limpiar todo</button>
+          </div>
+          <div class="card-body">
+            <div id="hist-empty" style="display:flex;flex-direction:column;align-items:center;padding:44px 0;color:var(--fg-2);gap:9px">
+              <div style="font-size:40px;opacity:.15">Historial</div>
+              <p style="font-size:13px">Las predicciones aparecerán aquí en tiempo real</p>
+            </div>
+            <div id="hist-list" hidden style="display:flex;flex-direction:column;gap:8px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════ MODEL ══════════════════════════════════ -->
+      <div id="tab-model" class="tab-panel">
+        <div class="metric-cards fade-up" id="metric-cards">
+          <div class="metric-card highlight">
+            <div class="mc-label">R² Test</div>
+            <div class="mc-value" id="m-r2">0.8640</div>
+            <div class="mc-desc">Coeficiente de determinación</div>
+          </div>
+          <div class="metric-card">
+            <div class="mc-label">MAE</div>
+            <div class="mc-value" id="m-mae">2.832</div>
+            <div class="mc-desc">MPa — Error absoluto medio</div>
+          </div>
+          <div class="metric-card">
+            <div class="mc-label">RMSE</div>
+            <div class="mc-value" id="m-rmse">4.024</div>
+            <div class="mc-desc">MPa — Raíz error cuadrático</div>
+          </div>
+          <div class="metric-card">
+            <div class="mc-label">CV R²</div>
+            <div class="mc-value" id="m-cv">0.8763±0.0072</div>
+            <div class="mc-desc">5-fold cross-validation</div>
+          </div>
+        </div>
+
+        <div class="card fade-up">
+          <div class="card-header">
+            <span class="card-title">Modelo activo</span>
+            <div class="model-switch">
+              <select class="form-input" id="model-selector" aria-label="Seleccionar modelo">
+                <option value="XGBoost">XGBoost</option>
+                <option value="CatBoost">CatBoost</option>
+                <option value="ExtraTrees">ExtraTrees</option>
+              </select>
+              <button class="btn-secondary" onclick="selectActiveModel()">Usar modelo</button>
+              <span class="model-switch-status" id="model-switch-status">Modelo cargado desde el backend</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card fade-up-2">
+          <div class="card-header"><span class="card-title">Comparación de modelos</span></div>
+          <div class="card-body">
+            <p style="font-size:12px;color:var(--fg-2);margin-bottom:12px">El modelo automático es el mejor por R² promedio en validación cruzada. «Activo» indica el modelo usado actualmente por el sistema.</p>
+            <div id="benchmark-table" style="overflow-x:auto;color:var(--fg-2);font-size:12px">Ejecuta el entrenamiento para comparar modelos.</div>
+          </div>
+        </div>
+
+        <div class="card fade-up-2">
+          <div class="card-header"><span class="card-title">Importancia de Variables — Modelo seleccionado</span></div>
+          <div class="card-body" id="importance-bars">
+            <p style="color:var(--fg-2);font-size:13px">Cargando...</p>
+          </div>
+        </div>
+
+        <div class="card fade-up-3">
+          <div class="card-header"><span class="card-title">🔄 Pipeline de Procesamiento</span></div>
+          <div class="card-body">
+            <div class="pipeline-steps" style="gap:0">
+              <div class="pipeline-step"><div class="ps-icon">01</div><div class="ps-label">Dataset UCI</div><div class="ps-desc">1,030 muestras distribución real</div></div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step"><div class="ps-icon">02</div><div class="ps-label">StandardScaler</div><div class="ps-desc">Normalización μ=0, σ=1</div></div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step"><div class="ps-icon">03</div><div class="ps-label">XGBRegressor</div><div class="ps-desc">300 árboles · depth 6 · lr 0.05</div></div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step"><div class="ps-icon">04</div><div class="ps-label">Predicción MPa</div><div class="ps-desc">→ kg/cm² (×10.197)</div></div>
+              <div class="pipeline-arrow">→</div>
+              <div class="pipeline-step" style="border-color:rgba(193,39,45,.3)"><div class="ps-icon">05</div><div class="ps-label">Costo + CO₂</div><div class="ps-desc">Factores Yura por componente</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card fade-up-4">
+          <div class="card-header"><span class="card-title">Clasificación de Resistencias — NTE E.060 Perú / ACI 318</span></div>
+          <div class="card-body">
+            <table class="class-table">
+              <thead><tr style="font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--fg-2)">
+                <th style="padding:6px 10px">Clase</th>
+                <th style="padding:6px 10px">f'c (kg/cm²)</th>
+                <th style="padding:6px 10px">a/c máx.</th>
+                <th style="padding:6px 10px">Uso típico</th>
+              </tr></thead>
+              <tbody>
+                <tr><td><span class="class-dot" style="background:#6b7280"></span>Simple</td><td>&lt; 175</td><td>—</td><td>Rellenos, solados, bases</td></tr>
+                <tr><td><span class="class-dot" style="background:#3b82f6"></span>Doméstico</td><td>175 – 210</td><td>0.60</td><td>Losas domésticas, muros no estructurales</td></tr>
+                <tr class="highlight-row"><td><span class="class-dot" style="background:var(--yr)"></span><strong>Estructural</strong></td><td><strong>210 – 280</strong></td><td><strong>0.55</strong></td><td><strong>Vigas, columnas, losas — uso más frecuente</strong></td></tr>
+                <tr><td><span class="class-dot" style="background:var(--amber)"></span>Alta resistencia</td><td>280 – 350</td><td>0.50</td><td>Estructuras importantes, sótanos</td></tr>
+                <tr><td><span class="class-dot" style="background:var(--green)"></span>Muy alta</td><td>350 – 420</td><td>0.45</td><td>Puentes, edificios de gran altura</td></tr>
+                <tr><td><span class="class-dot" style="background:#8b5cf6"></span>Ultra</td><td>&gt; 420</td><td>0.40</td><td>Elementos pretensados, estructuras especiales</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════ REFERENCES ════════════════════════════ -->
+      <div id="tab-references" class="tab-panel">
+        <div class="card fade-up">
+          <div class="card-header">
+            <span class="card-title">Referencias y fuentes</span>
+          </div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--fg-2);line-height:1.6;margin-bottom:18px">
+              Fuentes utilizadas para los datos, la metodología de predicción y los criterios técnicos mostrados en ConcretoIA.
+            </p>
+            <div style="display:grid;gap:12px">
+              <div class="reference-item">
+                <div class="reference-type">Datos</div>
+                <div>
+                  <strong>UCI Machine Learning Repository.</strong>
+                  <span>Concrete Compressive Strength Dataset, 1,030 muestras.</span>
+                  <a href="https://archive.ics.uci.edu/dataset/165/concrete+compressive+strength" target="_blank" rel="noopener noreferrer">Consultar dataset</a>
+                </div>
+              </div>
+              <div class="reference-item">
+                <div class="reference-type">Artículo</div>
+                <div>
+                  <strong>Yeh, I.-C. (1998).</strong>
+                  <span>Modeling of strength of high-performance concrete using artificial neural networks.</span>
+                  <a href="https://doi.org/10.1016/S0008-8846(98)00123-4" target="_blank" rel="noopener noreferrer">Ver publicación</a>
+                </div>
+              </div>
+              <div class="reference-item">
+                <div class="reference-type">Normativa</div>
+                <div>
+                  <strong>Reglamento Nacional de Edificaciones del Perú.</strong>
+                  <span>Norma Técnica E.060 Concreto Armado.</span>
+                </div>
+              </div>
+              <div class="reference-item">
+                <div class="reference-type">Normativa</div>
+                <div>
+                  <strong>American Concrete Institute.</strong>
+                  <span>ACI 318, Building Code Requirements for Structural Concrete.</span>
+                </div>
+              </div>
+              <div class="reference-item">
+                <div class="reference-type">Aditivos</div>
+                <div>
+                  <strong>Fichas técnicas Sika compartidas por el equipo.</strong>
+                  <span>Sika Plast-326, Sika Plastiment TM-12, Sika Air, Sikacem Plastificante, Sikament RB 2040 y Sika Plastiment 70 PE.</span>
+                  <span>Usar la dosificación indicada por el fabricante y validar compatibilidad con el cemento y la exposición.</span>
+                </div>
+              </div>
+              <div class="reference-item">
+                <div class="reference-type">Software</div>
+                <div>
+                  <strong>Chen, T. &amp; Guestrin, C. (2016).</strong>
+                  <span>XGBoost: A Scalable Tree Boosting System.</span>
+                  <a href="https://xgboost.readthedocs.io/en/stable/" target="_blank" rel="noopener noreferrer">Documentación XGBoost</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card fade-up-2">
+          <div class="card-header"><span class="card-title">Alcance de las referencias</span></div>
+          <div class="card-body">
+            <p style="font-size:13px;color:var(--fg-2);line-height:1.6">
+              Las referencias respaldan el dataset y los criterios de orientación del prototipo. Los resultados deben ser revisados por un profesional responsable antes de aplicarse en una obra.
+            </p>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <div class="toast-line"></div>
+  <span id="toast-msg"></span>
+</div>
+
+<script>
+/* ══ CONFIG ═══════════════════════════════════════════════════ */
+const API = (window.ALINA_API_URL || document.querySelector('meta[name="api-url"]')?.content || 'http://127.0.0.1:8000').replace(/\/$/, '');
+
+/* ══ STATE ════════════════════════════════════════════════════ */
+let currentAge = 28;
+let lastResult = null;
+let compareList = [];
+let historyList = [];
+let savedHistory = [];
+const HIST_COLORS = ['#C1272D','#E87722','#00B8D9','#2DBD74','#8b5cf6'];
+let darkMode = false;
+
+/* ══ UTILS ════════════════════════════════════════════════════ */
+const fmt = (v, d=1) => (+v).toFixed(d);
+const $ = id => document.getElementById(id);
+
+function showToast(msg, dur=2800){
+  $('toast-msg').textContent = msg;
+  const el = $('toast');
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), dur);
+}
+
+function btnLoad(btnId, lblId, spinId, on){
+  $(btnId).disabled = on;
+  $(lblId).hidden = on;
+  $(spinId).hidden = !on;
+}
+
+/* ══ THEME ════════════════════════════════════════════════════ */
+function toggleTheme(){
+  darkMode = !darkMode;
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+  $('theme-btn').innerHTML = '<i class="bi bi-circle-half" aria-hidden="true"></i>';
+}
+
+/* ══ API STATUS ═══════════════════════════════════════════════ */
+async function checkAPI(){
+  const dot = $('api-dot');
+  dot.className = 'api-dot connecting';
+  $('api-status-text').textContent = 'Conectando...';
+  try {
+    const r = await fetch(API + '/salud', {signal: AbortSignal.timeout(4000)});
+    const d = await r.json();
+    dot.className = 'api-dot ok';
+    $('api-status-text').textContent = 'API activa';
+    $('api-model-text').textContent = d.modelo === 'cargado' ? 'XGBoost listo' : 'modelo no disponible';
+    loadModelInfo();
+    loadSavedEvaluations();
+    loadSavedCompositions();
+  } catch {
+    dot.className = 'api-dot err';
+    $('api-status-text').textContent = 'Sin conexión';
+    $('api-model-text').textContent = 'Inicia uvicorn :8000';
+    showToast('Backend offline — ejecuta el servidor en el puerto 8000', 5000);
+  }
+}
+
+async function loadModelInfo(){
+  try {
+    const r = await fetch(API + '/modelo/info');
+    const d = await r.json();
+    const m = d.metricas || {};
+    if(d.modelo_activo) {
+      $('top-model-name').textContent = d.modelo_activo;
+      $('model-selector').value = d.modelo_activo;
+    }
+    if(d.modelos_disponibles) {
+      [...$('model-selector').options].forEach(option => {
+        option.hidden = !d.modelos_disponibles.includes(option.value);
+      });
+    }
+    if(d.modelo_activo) $('model-switch-status').textContent = 'Activo: ' + d.modelo_activo;
+    if(m.r2_test)  $('m-r2').textContent  = (+m.r2_test).toFixed(4);
+    if(m.r2_test)  $('top-model-r2').textContent = (+m.r2_test).toFixed(4);
+    if(m.mae_mpa)  $('m-mae').textContent  = m.mae_mpa;
+    if(m.rmse_mpa) $('m-rmse').textContent = m.rmse_mpa;
+    if(m.cv_r2_mean) $('m-cv').textContent = m.cv_r2_mean + '±' + m.cv_r2_std;
+    if(d.benchmark){
+      const rows = Object.entries(d.benchmark).map(([name, values]) => `
+        <tr class="${name === d.modelo_activo ? 'highlight-row' : ''}">
+          <td><strong>${name}</strong>${name === d.modelo_activo ? ' · activo' : ''}${name === d.modelo ? ' · automático' : ''}</td>
+          <td>${values.cv_r2_mean.toFixed(4)}</td>
+          <td>${values.mae_mpa.toFixed(3)}</td>
+          <td>${values.rmse_mpa.toFixed(3)}</td>
+        </tr>`).join('');
+      $('benchmark-table').innerHTML = `<table class="class-table"><thead><tr><th>Modelo</th><th>CV R²</th><th>MAE MPa</th><th>RMSE MPa</th></tr></thead><tbody>${rows}</tbody></table>`;
+    }
+  } catch {}
+
+  const IMP = [
+    {n:'Edad (días)',      pct:40.8, color:'var(--yr)'},
+    {n:'Cemento Yura IP', pct:37.9, color:'var(--accent-orange)'},
+    {n:'Escoria BFS',     pct:5.4,  color:'var(--accent-teal)'},
+    {n:'Agua',            pct:5.4,  color:'#3b82f6'},
+    {n:'Superplastif.',   pct:3.2,  color:'#8b5cf6'},
+    {n:'Ceniza volante',  pct:2.8,  color:'var(--green)'},
+    {n:'Ag. Grueso',      pct:2.4,  color:'var(--amber)'},
+    {n:'Ag. Fino',        pct:2.1,  color:'var(--gray-400)'},
+  ];
+  $('importance-bars').innerHTML = IMP.map((f,i) => `
+    <div style="display:flex;align-items:center;gap:13px;margin-bottom:11px">
+      <span style="font-size:12px;font-weight:600;min-width:138px;color:var(--fg)">${f.n}</span>
+      <div style="flex:1;height:11px;background:var(--border);border-radius:6px;overflow:hidden">
+        <div style="height:100%;width:0;border-radius:6px;background:${f.color};
+             transition:width 1.2s ${i*.08}s cubic-bezier(.4,0,.2,1)" data-w="${f.pct}%"></div>
+      </div>
+      <span style="font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:42px;color:var(--fg)">${f.pct}%</span>
+    </div>
+  `).join('');
+  setTimeout(() =>
+    document.querySelectorAll('[data-w]').forEach(el => el.style.width = el.getAttribute('data-w'))
+  , 150);
+}
+
+async function selectActiveModel(){
+  const selected = $('model-selector').value;
+  $('model-switch-status').textContent = 'Cambiando modelo...';
+  try {
+    const res = await fetch(API + '/modelo/seleccionar', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({modelo:selected}),
+    });
+    if(!res.ok){const error = await res.json();throw new Error(error.detail || 'No se pudo seleccionar');}
+    const data = await res.json();
+    $('model-switch-status').textContent = 'Activo: ' + data.modelo_activo;
+    $('top-model-name').textContent = data.modelo_activo;
+    await loadModelInfo();
+    showToast('Modelo activo: ' + data.modelo_activo);
+  } catch(error) {
+    $('model-switch-status').textContent = 'No disponible';
+    showToast('Modelo no disponible: ' + error.message, 4000);
+  }
+}
+
+/* ══ SLIDER LABELS ════════════════════════════════════════════ */
+function updateSlider(v){
+  $('opt-slider-val').textContent = Number(v).toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+  const hints = {
+    175: "Estructuras livianas y elementos no estructurales",
+    210: "Clase estructural estándar — vigas y columnas",
+    280: "Alta resistencia — estructuras importantes",
+    350: "Muy alta resistencia — puentes y edificios altos",
+  };
+  const keys = Object.keys(hints).map(Number).sort((a,b)=>a-b);
+  const best = keys.reduce((prev,k) => Math.abs(k-v) < Math.abs(prev-v) ? k : prev, keys[0]);
+  if(Math.abs(best-v) <= 30) $('opt-slider-class').textContent = hints[best];
+  else $('opt-slider-class').textContent = `f'c objetivo: ${v} kg/cm²`;
+}
+
+/* ══ TABS ═════════════════════════════════════════════════════ */
+const TAB_TITLES = {
+  predictor:'Predictor de Resistencia',
+  optimizer:'Optimizador de Mezcla',
+  compare:'Comparador de Mezclas',
+  history:'Historial de Predicciones',
+  model:'Modelo ML — XGBoost',
+  references:'Referencias y Fuentes'
+};
+function switchTab(id, btn){
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  $('tab-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  $('topbar-title').textContent = TAB_TITLES[id] || id;
+}
+
+/* ══ AGE ══════════════════════════════════════════════════════ */
+function setAge(v, btn){
+  currentAge = v;
+  const optimizerAge = $('opt-age');
+  if(optimizerAge) optimizerAge.value = String(v);
+  document.querySelectorAll('.age-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  updateGuide();
+}
+
+/* ══ RATIO A/C LIVE ═══════════════════════════════════════════ */
+function onFormChange(){
+  const cementField = $('f-cement');
+  const waterField = $('f-water');
+  if(!cementField || !waterField) return;
+  const cem   = +cementField.value || 1;
+  const slag  = +($('f-slag')?.value || 0);
+  const fly   = +($('f-flyash')?.value || 0);
+  const water = +waterField.value;
+  const cemEq = cem + slag + fly; // a/mc = agua / (cemento + escoria + ceniza)
+  const ac    = water / cemEq;
+
+  const rv = $('ratio-val'), rn = $('ratio-note'), rb = $('ratio-bar');
+  if(rv) rv.textContent = fmt(ac, 2);
+
+  if(ac <= 0.45){
+    if(rv) rv.className = 'ratio-value ok';
+    if(rn) rn.textContent = 'Excelente — alta durabilidad (NTE E.060 §8.3.1)';
+    if(rb) rb.className = 'ratio-bar ok';
+  } else if(ac <= 0.55){
+    if(rv) rv.className = 'ratio-value ok';
+    if(rn) rn.textContent = 'Aceptable — uso estructural estándar';
+    if(rb) rb.className = 'ratio-bar ok';
+  } else if(ac <= 0.65){
+    if(rv) rv.className = 'ratio-value warn';
+    if(rn) rn.textContent = 'Límite — revisar para exposición severa';
+    if(rb) rb.className = 'ratio-bar warn';
+  } else {
+    if(rv) rv.className = 'ratio-value bad';
+    if(rn) rn.textContent = '✗ Elevada — riesgo de durabilidad, revisar diseño';
+    if(rb) rb.className = 'ratio-bar bad';
+  }
+  updateGuide();
+}
+onFormChange();
+
+function updateExposureNote(){
+  const notes = {
+    normal: 'La selección orienta la relación a/c, la resistencia y el tipo de cemento a revisar. No modifica la predicción estadística del modelo.',
+    sulfatos: 'Solicita estudio de suelo: define la severidad de sulfatos y revisa cemento resistente a sulfatos, baja permeabilidad y curado.',
+    cloruros: 'Revisa baja permeabilidad, recubrimiento, curado y protección contra ingreso de cloruros. El cemento se define con el responsable del diseño.',
+    acidos: 'El cemento por sí solo no neutraliza el ataque ácido. Considera barreras, revestimientos o materiales resistentes y evaluación especializada.',
+  };
+  const exposureNote = $('exposure-note');
+  if(exposureNote) exposureNote.textContent = notes[$('f-exposure').value] || notes.normal;
+  updateGuide();
+}
+updateExposureNote();
+
+function updateSlumpLimits(){
+  const input = $('f-slump-value');
+  if(!input) return;
+  input.max = '250';
+  input.step = '0.1';
+  updateGuide();
+}
+
+function getSlumpMm(){
+  const value = +$('f-slump-value').value || 0;
+  return value;
+}
+
+function updateGuide(){
+  const status = $('guide-live-status');
+  const summary = $('guide-live-summary');
+  const panel = $('guide-live');
+  if(!status || !summary || !$('f-cement') || !$('f-water') || !$('f-exposure')) return;
+  const cement = +$('f-cement').value || 0;
+  const water = +$('f-water').value || 0;
+  const ac = water / (cement + .4*(+$('f-slag').value || 0) + .3*(+$('f-flyash').value || 0) + 1e-9);
+  const slump = getSlumpMm();
+  const age = currentAge;
+  const exposureField = $('f-exposure');
+  const exposure = exposureField && exposureField.selectedIndex >= 0
+    ? exposureField.options[exposureField.selectedIndex].text
+    : 'Sin exposición especial';
+  const concerns = [];
+  if(ac > .65) concerns.push('revisar relación a/c');
+  if(slump > 180) concerns.push('validar asentamiento alto');
+  if(age !== 28) concerns.push('edad distinta a diseño');
+  panel.className = 'guide-live ' + (concerns.length ? 'review' : 'ready');
+  status.textContent = concerns.length ? 'Requiere revisión' : 'Parámetros iniciales consistentes';
+  summary.textContent = `${cement} kg/m³ de cemento · ${slump.toFixed(0)} mm · ${age} días · ${exposure}. ${concerns.length ? concerns.join('; ') + '.' : 'Puedes ejecutar una predicción.'}`;
+}
+
+function applyPreset(name, button){
+  const presets = {
+    estructural: {cement:380, water:185, superp:6, age:28, exposure:'normal', cementType:'Yura IP', sika:'Sika Plast-326', slump:100},
+    alta: {cement:500, water:160, superp:10, age:28, exposure:'normal', cementType:'Yura IP', sika:'Sikament RB 2040', slump:100},
+    'bajo-co2': {cement:300, water:175, superp:6, age:28, exposure:'normal', cementType:'Yura IP', sika:'Sika Plastiment TM-12', slump:100},
+    sulfatos: {cement:420, water:170, superp:8, age:28, exposure:'sulfatos', cementType:'Yura HS', sika:'Sikament RB 2040', slump:100},
+  };
+  const preset = presets[name];
+  if(!preset) return;
+  $('f-cement').value = preset.cement;
+  $('f-water').value = preset.water;
+  $('f-superp').value = preset.superp;
+  $('f-exposure').value = preset.exposure;
+  $('f-cement-type').value = preset.cementType;
+  $('f-sika').value = preset.sika;
+  $('f-slump-value').value = preset.slump;
+  $('f-slump-unit').value = 'mm';
+  const ageButton = [...document.querySelectorAll('.age-btn')].find(item => item.textContent.startsWith(preset.age + ' '));
+  if(ageButton) setAge(preset.age, ageButton);
+  document.querySelectorAll('.preset-btn').forEach(item => item.classList.remove('active'));
+  button.classList.add('active');
+  updateExposureNote();
+  onFormChange();
+  showToast('Escenario cargado: ' + button.textContent);
+}
+
+/* ══ RESET ════════════════════════════════════════════════════ */
+function resetForm(){
+  ['f-cement','f-water','f-coarse','f-fine','f-slump-value','f-project','f-method','f-strength','f-malla','f-max-nominal','f-max-curva','f-k1','f-coefficient']
+    .forEach(id => $(id).value = '');
+  setAge(28, [...document.querySelectorAll('.age-btn')].find(button => button.textContent.startsWith('28')));
+  $('f-exposure').value = 'normal';
+  $('f-slump-value').value = 100;
+  $('f-slump-unit').value = 'mm';
+  $('f-cement-type').value = 'Yura IP';
+  $('f-sika').value = 'Ninguno';
+  updateExposureNote();
+  onFormChange();
+  $('kpi-row').style.display = 'none';
+  $('intro-banner').style.display = '';
+  $('result-body').innerHTML = `
+    <div class="result-empty">
+      <div class="result-empty-icon">--</div>
+      <p style="font-size:13px;font-weight:600;color:var(--fg)">Sin predicción aún</p>
+      <p style="font-size:12px">Completa la dosificación y presiona <strong>Predecir Resistencia</strong></p>
+    </div>`;
+  $('result-cls-badge').hidden = true;
+  $('report-btn').disabled = true;
+  lastResult = null;
+  showToast("Formulario restablecido — f'c 210 estándar");
+}
+
+/* ══ IMPORTACIÓN DE PDF ══════════════════════════════════════ */
+async function importPdfData(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  if(file.type && file.type !== 'application/pdf'){
+    showToast('Selecciona un archivo PDF', 4000); input.value = ''; return;
+  }
+  showToast('Leyendo PDF: ' + file.name);
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(API + '/importar/pdf', {method:'POST', body:form});
+    const rawText = await res.text().catch(() => '');
+    let data = null;
+    if(rawText){
+      try { data = JSON.parse(rawText); }
+      catch { data = null; }
+    }
+    if(!res.ok) {
+      const detail = data && data.detail;
+      const message = Array.isArray(detail) ? detail.map(item => item.msg || String(item)).join('; ') : (typeof detail === 'string' ? detail : 'No se pudo importar el PDF');
+      throw new Error(message);
+    }
+    if(!data) throw new Error('El servidor respondió con un formato inválido');
+    const idsVaciar = ['f-project','f-method','f-max-nominal','f-max-curva','f-malla','f-strength','f-k1','f-coefficient','f-cement','f-water','f-coarse','f-fine','f-slump-value'];
+    idsVaciar.forEach(id => { const field = $(id); if(field) field.value = ''; });
+    const datos = data.datos || {};
+    const setField = (id, value) => {
+      if(value == null || value === '') return;
+      const field = $(id);
+      if(field) field.value = value;
+    };
+
+    setField('f-cement', datos.cement);
+    setField('f-water', datos.water);
+    setField('f-coarse', datos.coarseaggregate);
+    setField('f-fine', datos.fineaggregate);
+    setField('f-slump-value', datos.asentamiento_objetivo_mm);
+    setField('f-project', datos.proyecto);
+    setField('f-method', datos.metodo_diseno);
+    setField('f-max-nominal', datos.tamano_maximo_nominal_mm);
+    setField('f-max-curva', datos.tamano_maximo_curva_mm);
+    setField('f-malla', datos.malla_referencia_mm);
+    setField('f-k1', datos.k1);
+    setField('f-coefficient', datos.coeficiente_curva);
+    setField('f-strength', datos.resistencia_solicitada_kgcm2);
+
+    if(datos.resistencia_solicitada_kgcm2 != null){
+      const objective = Number(datos.resistencia_solicitada_kgcm2);
+      const slider = $('opt-slider');
+      if(slider){
+        slider.value = String(Math.max(100, Math.min(700, objective)));
+        updateSlider(slider.value);
+      }
+    }
+    if(datos.water != null) $('opt-water').value = datos.water;
+    if(datos.cement != null) $('opt-maxcement').value = Math.max(200, Math.min(600, Math.round(datos.cement)));
+    const importedAge = currentAge >= 1 && currentAge <= 28 ? currentAge : 28;
+    $('opt-age').value = String(importedAge);
+
+    const slumpUnit = $('f-slump-unit');
+    if(slumpUnit) slumpUnit.value = 'mm';
+
+    const reconocidos = Array.isArray(data.reconocidos) ? data.reconocidos : Object.keys(datos).filter(key => datos[key] !== null && datos[key] !== '');
+    showToast('PDF importado: ' + reconocidos.length + ' datos cargados');
+
+    setTimeout(() => {
+      try {
+        if(typeof updateSlumpLimits === 'function') updateSlumpLimits();
+        if(typeof onFormChange === 'function') onFormChange();
+      } catch (visualError) {
+        console.warn('Actualización visual posterior al PDF:', visualError);
+      }
+    }, 0);
+  } catch(error){
+    const message = error instanceof Error ? error.message : (typeof error === 'string' ? error : 'Backend no disponible');
+    showToast('Error al importar PDF: ' + message, 5000);
+  } finally {
+    input.value = '';
+  }
+}
+
+/* ══ PLANTILLAS DE DOSIFICACIÓN ══════════════════════════════ */
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"]/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+}
+
+function collectCompositionTemplate(){
+  return {
+    cement: +$('f-cement').value,
+    slag: +$('f-slag').value,
+    flyash: +$('f-flyash').value,
+    water: +$('f-water').value,
+    superplasticizer: +$('f-superp').value,
+    coarseaggregate: +$('f-coarse').value,
+    fineaggregate: +$('f-fine').value,
+    age: currentAge,
+    exposicion_ambiental: $('f-exposure').value,
+    asentamiento_objetivo_mm: getSlumpMm(),
+    tipo_cemento: $('f-cement-type').value,
+    aditivo_sika: $('f-sika').value,
+    proyecto: $('f-project').value.trim(),
+    responsable: $('f-responsible').value.trim(),
+  };
+}
+
+async function saveCompositionTemplate(){
+  const projectName = $('f-project').value.trim();
+  const name = prompt('Nombre para esta plantilla:', projectName || 'Mezcla estructural');
+  if(!name || !name.trim()) return;
+  try {
+    const payload = {name:name.trim(), composition:collectCompositionTemplate(), notes:`Responsable: ${$('f-responsible').value.trim()}`};
+    const res = await fetch(API + '/composiciones', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if(!res.ok) throw new Error(data.detail || 'No se pudo guardar la plantilla');
+    await loadSavedCompositions();
+    showToast('Plantilla guardada: ' + name.trim());
+  } catch(error) {
+    showToast('Error al guardar plantilla: ' + error.message, 4000);
+  }
+}
+
+async function loadSavedCompositions(){
+  try {
+    const res = await fetch(API + '/composiciones?limit=50');
+    if(!res.ok) return;
+    const data = await res.json();
+    const select = $('saved-composition-select');
+    if(!select) return;
+    select.innerHTML = '<option value="">Mis plantillas</option>' + (data.composiciones || []).map(item =>
+      `<option value="${item.id}">${escapeHtml(item.name)}</option>`
+    ).join('');
+    window.savedCompositions = data.composiciones || [];
+  } catch {}
+}
+
+function loadSavedComposition(id){
+  if(!id) return;
+  const item = (window.savedCompositions || []).find(entry => entry.id === id);
+  if(!item) return;
+  let composition;
+  try { composition = typeof item.composition_json === 'string' ? JSON.parse(item.composition_json) : item.composition_json; }
+  catch { showToast('No se pudo leer la plantilla', 4000); return; }
+  $('f-cement').value = composition.cement ?? 380;
+  $('f-slag').value = composition.slag ?? 0;
+  $('f-flyash').value = composition.flyash ?? 0;
+  $('f-water').value = composition.water ?? 185;
+  $('f-superp').value = composition.superplasticizer ?? 6;
+  $('f-coarse').value = composition.coarseaggregate ?? 950;
+  $('f-fine').value = composition.fineaggregate ?? 750;
+  $('f-exposure').value = composition.exposicion_ambiental || 'normal';
+  $('f-cement-type').value = composition.tipo_cemento || 'Yura IP';
+  $('f-sika').value = composition.aditivo_sika || 'Ninguno';
+  $('f-project').value = composition.proyecto || '';
+  $('f-responsible').value = composition.responsable || '';
+  $('f-slump-value').value = composition.asentamiento_objetivo_mm || 100;
+  $('f-slump-unit').value = 'mm';
+  if(composition.age) {
+    const ageButton = [...document.querySelectorAll('.age-btn')].find(button => button.textContent.startsWith(composition.age + ' '));
+    if(ageButton) setAge(composition.age, ageButton);
+  }
+  onFormChange();
+  showToast('Plantilla cargada: ' + item.name);
+}
+
+function readableApiError(detail, fallback = 'No se pudo completar la operación'){
+  if(typeof detail === 'string') return detail;
+  if(Array.isArray(detail)) return detail.map(item => {
+    const field = item.loc ? item.loc.filter(Boolean).join('.') : '';
+    return (field ? field + ': ' : '') + (item.msg || 'Dato inválido');
+  }).join(' · ');
+  if(detail && typeof detail === 'object') return detail.message || JSON.stringify(detail);
+  return fallback;
+}
+
+/* ══ PREDICT ══════════════════════════════════════════════════ */
+async function predict(){
+  btnLoad('pred-btn','pred-lbl','pred-spin',true);
+
+  const ranges = {
+    'f-cement': [100, 600, 'Cemento'],
+    'f-water': [100, 260, 'Agua'],
+    'f-coarse': [700, 1200, 'Agregado grueso'],
+    'f-fine': [500, 1050, 'Agregado fino'],
+    'f-slump-value': [0, 250, 'Asentamiento'],
+  };
+  for(const [id, [min, max, label]] of Object.entries(ranges)){
+    const field = $(id);
+    const value = field ? Number(field.value) : NaN;
+    if(field && (field.value === '' || !Number.isFinite(value))){
+      btnLoad('pred-btn','pred-lbl','pred-spin',false);
+      showToast('Completa el campo: ' + label, 4000);
+      field.focus();
+      return;
+    }
+    if(value < min || value > max){
+      btnLoad('pred-btn','pred-lbl','pred-spin',false);
+      showToast(label + ' debe estar entre ' + min + ' y ' + max, 4000);
+      field.focus();
+      return;
+    }
+  }
+
+  const body = {
+    cement:          +$('f-cement').value,
+    slag:            +$('f-slag').value,
+    flyash:          +$('f-flyash').value,
+    water:           +$('f-water').value,
+    superplasticizer:+$('f-superp').value,
+    coarseaggregate: +$('f-coarse').value,
+    fineaggregate:   +$('f-fine').value,
+    age:             currentAge,
+    exposicion_ambiental: $('f-exposure').value,
+    asentamiento_objetivo_mm: getSlumpMm(),
+    tipo_cemento: $('f-cement-type').value,
+    aditivo_sika: $('f-sika').value,
+    proyecto: $('f-project').value.trim(),
+    responsable: $('f-responsible').value.trim(),
+  };
+  try {
+    const res = await fetch(API + '/predecir', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if(!res.ok){
+      const e = await res.json().catch(() => ({}));
+      const names = {cement:'Cemento',coarseaggregate:'Agregado grueso',fineaggregate:'Agregado fino',water:'Agua',asentamiento_objetivo_mm:'Asentamiento'};
+      const detail = Array.isArray(e.detail) ? e.detail.map(item => {
+        const field = item.loc?.filter(Boolean).pop();
+        return names[field] ? `${names[field]}: ${item.msg || 'valor inválido'}` : (item.msg || 'valor inválido');
+      }).join(' · ') : readableApiError(e.detail, 'Error '+res.status);
+      throw new Error(detail);
+    }
+    const d = await res.json();
+    lastResult = {body, d};
+    $('report-btn').disabled = false;
+  $('save-btn').disabled = false;
+
+    // Ocultar intro, mostrar KPIs
+    $('intro-banner').style.display = 'none';
+    $('kpi-row').style.display = 'grid';
+    $('kpi-mpa').textContent    = fmt(d.resistencia_mpa) + ' MPa';
+    $('kpi-kgcm2-unit').textContent = fmt(d.resistencia_kgcm2, 0) + ' kg/cm²';
+    $('kpi-cost').textContent   = 'S/. ' + fmt(d.costo_sol_m3);
+    $('kpi-co2').textContent    = fmt(d.co2_kg_m3);
+
+    const diff = d.resistencia_kgcm2 - 210;
+    $('kpi-res-badge').className = 'kpi-badge ' + (diff >= 0 ? 'up' : 'down');
+    $('kpi-res-badge').textContent = (diff >= 0 ? '▲ +' : '▼ ') + fmt(Math.abs(diff),0) + " vs f'c 210";
+    $('kpi-cost-badge').textContent = 'Ref. f\'c210 ≈ S/.210/m³';
+    $('kpi-cost-badge').className = 'kpi-badge';
+    $('kpi-co2-badge').textContent = 'Cemento: ' + fmt(body.cement * 0.82, 0) + ' kg CO₂';
+    $('kpi-co2-badge').className = 'kpi-badge ok';
+
+    // Classification badge
+    const badge = $('result-cls-badge');
+    badge.hidden = false;
+    badge.textContent = d.clasificacion;
+    const kgcm2 = d.resistencia_kgcm2;
+    badge.style.cssText = kgcm2 >= 280
+      ? 'background:#e8f9f1;color:#1a6645;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid rgba(45,189,116,.3)'
+      : kgcm2 >= 210
+      ? 'background:#fff4e5;color:#92650a;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid rgba(245,158,11,.3)'
+      : 'background:#eef2ff;color:#3730a3;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid rgba(99,102,241,.3)';
+
+    renderResult(body, d);
+    addHistory(body, d);
+    showToast(fmt(d.resistencia_kgcm2, 0) + ' kg/cm² · S/. ' + fmt(d.costo_sol_m3) + '/m³');
+  } catch(e) {
+    $('result-body').innerHTML = `
+      <div class="err-box">
+        Error: ${e.message}
+        <br><small style="opacity:.7">¿Está corriendo: <code>python -m uvicorn main:app --port 8000</code>?</small>
+      </div>`;
+    showToast('Error: ' + readableApiError(e.message, 'No se pudo obtener el resultado'), 4000);
+  }
+  btnLoad('pred-btn','pred-lbl','pred-spin',false);
+}
+
+function downloadReport(){
+  if(!lastResult) return;
+  const {body, d} = lastResult;
+  fetch(API+'/informes/evaluacion.pdf', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      composition: body,
+      result: d,
+      proyecto: body.proyecto || 'Sin proyecto',
+      responsable: body.responsable || 'Sin responsable',
+      fecha_generacion: new Intl.DateTimeFormat('es-PE', {
+        day:'2-digit', month:'2-digit', year:'numeric',
+        hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false
+      }).format(new Date()) + ' (hora local)',
+    }),
+  }).then(async response => {
+    if(!response.ok){ const error = await response.json(); throw new Error(error.detail || 'No se pudo generar el PDF'); }
+    return response.blob();
+  }).then(blob => {
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'concretoia-evaluacion.pdf';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast('Informe PDF descargado');
+  }).catch(error => showToast('Error: '+error.message, 4000));
+}
+
+async function saveCurrentEvaluation(){
+  if(!lastResult) return showToast('Primero debe evaluar una mezcla');
+  const {body, d} = lastResult;
+  try {
+    const payload = {
+      composition: { ...body },
+      result: { ...d },
+      model_name: 'XGBoost',
+      exposure_profile: body.exposicion_ambiental || 'normal',
+      notes: `Proyecto: ${body.proyecto || 'Sin proyecto'} · Responsable: ${body.responsable || 'Sin responsable'}`,
+    };
+    const res = await fetch(API + '/evaluaciones', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    const resp = await res.json();
+    if(!res.ok) throw new Error(resp.detail || 'No se pudo guardar la evaluación');
+    await loadSavedEvaluations();
+    showToast('Evaluación guardada con origen: ' + (body.proyecto || 'manual'));
+  } catch (e) {
+    showToast('Error al guardar: ' + e.message, 4000);
+  }
+}
+
+async function loadSavedEvaluations(){
+  try {
+    const res = await fetch(API + '/evaluaciones?limit=8');
+    if(!res.ok) return;
+    const data = await res.json();
+    window.savedHistory = data.evaluaciones || [];
+    renderHistory();
+  } catch {
+    window.savedHistory = [];
+  }
+}
+
+async function loadSavedHistory(id){
+  try {
+    const res = await fetch(API + '/evaluaciones/' + id);
+    if(!res.ok) throw new Error('No se encontró la evaluación');
+    const item = await res.json();
+    const body = item.composition || {};
+    const d = item.result || {};
+    lastResult = { body, d };
+    $('report-btn').disabled = false;
+    $('save-btn').disabled = false;
+    renderResult(body, d);
+    showToast('Evaluación recuperada sin recalcular');
+    switchTab('predictor', document.querySelector('[data-tab=predictor]'));
+  } catch (e) {
+    showToast('No se pudo recuperar la evaluación: ' + e.message, 4000);
+  }
+}
+
+/* ══ RENDER RESULT ════════════════════════════════════════════ */
+function renderResult(m, d){
+  const kgcm2 = d.resistencia_kgcm2, mpa = d.resistencia_mpa;
+  const maxG = 420;
+  const pct  = Math.min(kgcm2, maxG) / maxG;
+  const angle = -Math.PI + Math.PI * pct;
+  const r = 76, cx = 90, cy = 86;
+  const ex = cx + r*Math.cos(angle), ey = cy + r*Math.sin(angle);
+  const gaugeColor = kgcm2 >= 280 ? '#2DBD74' : kgcm2 >= 210 ? '#F59E0B' : '#C1272D';
+  const durabilidad = d.durabilidad;
+
+  // Age curve
+  const MAT = {1:.38, 3:.60, 7:.75, 14:.90, 28:1.0};
+  const ages = [1, 3, 7, 14, 28];
+  const base = mpa / (MAT[m.age] || 1);
+  const pts  = ages.map(a => ({a, v: base*(MAT[a]||1)}));
+  const maxV = Math.max(...pts.map(p=>p.v)) * 1.2;
+  const W=300,H=115,PL=24,PT=8,PR=8,PB=22,aw=W-PL-PR,ah=H-PT-PB;
+  const px = i  => PL + i/(pts.length-1)*aw;
+  const py = v  => PT + ah*(1 - v/maxV);
+  const line = pts.map((p,i) => (i===0?'M':'L')+px(i).toFixed(1)+','+py(p.v).toFixed(1)).join(' ');
+  const area = line + ` L${(PL+aw).toFixed(1)},${(PT+ah).toFixed(1)} L${PL},${(PT+ah).toFixed(1)} Z`;
+  const y210 = Math.max(py(210/10.197), PT+2);
+
+  // Alerts
+  const ac = m.water / (m.cement + .4*m.slag + .3*m.flyash + 1e-6);
+  const alerts = [];
+  if(ac > 0.65) alerts.push({cls:'warn', txt:'Relación a/c = '+fmt(ac,2)+' supera 0.65 — reducir agua o aumentar cemento (NTE E.060 §8.3)'});
+  if(kgcm2 >= 210 && kgcm2 < 280) alerts.push({cls:'ok', txt:"Cumple f'c mínimo estructural (NTE E.060 §21.2)"});
+  if(kgcm2 >= 280) alerts.push({cls:'ok', txt:'Resistencia de alta categoría — cumple estructuras importantes'});
+  if(m.slag > 0 || m.flyash > 0){
+    const ef = (m.cement+.4*m.slag+.3*m.flyash)/m.cement;
+    alerts.push({cls:'info', txt:`Adiciones activas: eficiencia cementante ${fmt(ef,2)}× — se reduce CO₂ y costo`});
+  }
+
+  $('result-body').innerHTML = `
+    <div class="gauge-area">
+      <svg class="gauge-svg" width="180" height="98" viewBox="0 0 180 98">
+        <defs>
+          <linearGradient id="gArc" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%"   stop-color="#C1272D"/>
+            <stop offset="50%"  stop-color="#F59E0B"/>
+            <stop offset="100%" stop-color="#2DBD74"/>
+          </linearGradient>
+        </defs>
+        <path d="M14,86 A76,76 0 0,1 166,86" fill="none" stroke="var(--border)" stroke-width="10" stroke-linecap="round"/>
+        <path d="M14,86 A76,76 0 0,1 ${ex.toFixed(1)},${ey.toFixed(1)}"
+          fill="none" stroke="url(#gArc)" stroke-width="10" stroke-linecap="round" opacity=".85"/>
+        <circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="6"
+          fill="${gaugeColor}" stroke="var(--bg-card)" stroke-width="2.5"/>
+        <text x="90" y="72" text-anchor="middle" font-size="21" font-weight="900"
+          fill="var(--fg)" font-family="JetBrains Mono,monospace">${fmt(kgcm2,0)}</text>
+        <text x="90" y="85" text-anchor="middle" font-size="9.5" fill="var(--fg-2)">kg/cm²</text>
+        <text x="14"  y="98" font-size="8" fill="var(--fg-2)" text-anchor="middle">0</text>
+        <text x="166" y="98" font-size="8" fill="var(--fg-2)" text-anchor="middle">420</text>
+      </svg>
+      <div style="font-size:11px;color:var(--fg-2);text-align:center;margin-top:3px;font-weight:500">
+        ${fmt(mpa)} MPa &nbsp;·&nbsp; ${d.clasificacion}
+      </div>
+    </div>
+
+    <div style="margin-top:18px">
+      <div class="form-block-title">Curva de madurez — evolución por edad</div>
+      <div class="curve-area">
+        <svg class="curve-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+          <defs><linearGradient id="aGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%"   stop-color="var(--yr)" stop-opacity=".15"/>
+            <stop offset="100%" stop-color="var(--yr)" stop-opacity=".01"/>
+          </linearGradient></defs>
+          <line x1="${PL}" y1="${y210.toFixed(1)}" x2="${PL+aw}" y2="${y210.toFixed(1)}"
+            stroke="var(--fg-2)" stroke-width="1" stroke-dasharray="3,3" opacity=".4"/>
+          <text x="${PL+3}" y="${(y210-3).toFixed(1)}" font-size="7.5" fill="var(--fg-2)">f'c 210</text>
+          <path d="${area}" fill="url(#aGrad)"/>
+          <path d="${line}" fill="none" stroke="var(--yr)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          ${pts.map((p,i)=>{
+            const x=px(i),y=py(p.v),sel=p.a===m.age;
+            return `
+              <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sel?5:3}"
+                fill="${sel?'var(--yr)':'var(--bg-card)'}"
+                stroke="${sel?'var(--yr)':'var(--border)'}"]stroke-width="${sel?0:1.5}"/>
+              <text x="${x.toFixed(1)}" y="${(y-9).toFixed(1)}" font-size="8.5"
+                text-anchor="middle" fill="${sel?'var(--yr)':'var(--fg-2)'}"
+                font-weight="${sel?'700':'400'}">${fmt(p.v,1)}</text>
+              <text x="${x.toFixed(1)}" y="${(PT+ah+14).toFixed(1)}" font-size="7.5"
+                text-anchor="middle" fill="var(--fg-2)">${p.a}d</text>`;
+          }).join('')}
+        </svg>
+      </div>
+    </div>
+
+    ${alerts.map(a=>`<div class="alert ${a.cls}"><span class="alert-icon">${a.cls==='warn'?'Aviso':a.cls==='ok'?'OK':'Info'}</span><span>${a.txt}</span></div>`).join('')}
+
+    ${durabilidad ? `<div class="exposure-note" style="margin-top:14px">
+      <strong>Durabilidad: ${durabilidad.nombre}</strong><br>
+      ${durabilidad.cemento_recomendado}. ${durabilidad.recomendacion}
+      ${durabilidad.alertas.length ? `<br><strong>Revisar:</strong> ${durabilidad.alertas.join(' ')}` : '<br>La mezcla cumple los umbrales orientativos seleccionados.'}
+      <br><small>${durabilidad.nota}</small>
+    </div>` : ''}
+
+    <div class="detail-grid">
+      ${[['Cemento',m.cement+' kg/m³'],
+         ['Agua',m.water+' L/m³'],
+         ['Superplastif.',m.superplasticizer+' kg/m³'],
+         ['Ag. Grueso',m.coarseaggregate+' kg/m³'],
+         ['Ag. Fino',m.fineaggregate+' kg/m³'],
+         ['Edad',m.age+' días'],
+         ['Clasificación',d.clasificacion || 'Por validar']
+        ].map(([lb,vl])=>`
+        <div class="detail-item${lb==='Clasificación'?' detail-item-full':''}">
+          <span class="di-label">${lb}</span>
+          <span class="di-value">${vl}</span>
+        </div>`).join('')}
+    </div>
+    ${d.trabajabilidad ? `<div class="exposure-note" style="margin-top:12px">
+      <strong>Trabajabilidad</strong>: asentamiento objetivo ${d.trabajabilidad.asentamiento_objetivo_mm} mm. ${d.trabajabilidad.control_requerido}
+      ${d.trabajabilidad.alertas.length ? `<br><strong>Revisar:</strong> ${d.trabajabilidad.alertas.join(' ')}` : ''}
+    </div>` : ''}
+  `;
+}
+
+/* ══ HISTORY ══════════════════════════════════════════════════ */
+function addHistory(m, d){
+  historyList.unshift({m, d, id: historyList.length+1, ts: new Date().toLocaleTimeString('es-PE')});
+  renderHistory();
+  $('badge-history').textContent = historyList.length;
+}
+function renderHistory(){
+  const list=$('hist-list'), empty=$('hist-empty');
+  const savedEntries = (window.savedHistory || []).map((e, idx) => ({
+    id: e.id,
+    saved: true,
+    m: e.composition || {},
+    d: e.result || {},
+    ts: new Date(e.created_at || Date.now()).toLocaleTimeString('es-PE'),
+    label: 'Guardada',
+    index: idx,
+  }));
+  const entries = [...historyList.map((e,i) => ({ ...e, saved: false, index: i })), ...savedEntries];
+  if(!entries.length){list.hidden=true;empty.style.display='flex';return;}
+  list.hidden=false; list.style.display='flex'; empty.style.display='none';
+  list.innerHTML = entries.map((e,i)=>`
+    <div class="hist-item" onclick="${e.saved ? `loadSavedHistory('${e.id}')` : `loadHistory(${e.index})`}" style="animation-delay:${i*.04}s">
+      <div class="hist-num" style="background:${HIST_COLORS[i%HIST_COLORS.length]}">${e.saved ? 'G' : e.id}</div>
+      <div style="flex:1;min-width:0">
+        <div class="hist-res">${fmt(e.d.resistencia_kgcm2,0)} <span style="font-size:12px;font-weight:400;color:var(--fg-2)">kg/cm²</span>
+          &nbsp;<span style="font-size:11px;color:var(--fg-2)">${fmt(e.d.resistencia_mpa)} MPa</span></div>
+        <div class="hist-meta">${e.ts} · ${e.saved ? 'Evaluación guardada' : `C=${e.m.cement}kg · A=${e.m.water}L · ${e.m.age}d`}</div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end">
+        <span class="tag tag-red">S/.${fmt(e.d.costo_sol_m3,0)}</span>
+        <span class="tag tag-green">${fmt(e.d.co2_kg_m3,0)} kg CO₂</span>
+      </div>
+    </div>`).join('');
+}
+function loadHistory(idx){
+  const e = historyList[idx];
+  if(!e) return;
+  $('f-cement').value=e.m.cement; $('f-slag').value=e.m.slag; $('f-flyash').value=e.m.flyash;
+  $('f-water').value=e.m.water; $('f-superp').value=e.m.superplasticizer;
+  $('f-coarse').value=e.m.coarseaggregate; $('f-fine').value=e.m.fineaggregate;
+  $('f-slump-value').value=e.m.asentamiento_objetivo_mm || ((e.m.asentamiento_objetivo_cm || 10) * 10);
+  $('f-slump-unit').value = 'mm';
+  $('f-cement-type').value=e.m.tipo_cemento || 'Yura IP';
+  $('f-sika').value=e.m.aditivo_sika || 'Ninguno';
+  $('f-exposure').value=e.m.exposicion_ambiental || 'normal';
+  updateExposureNote();
+  const ageBtns = [...document.querySelectorAll('.age-btn')];
+  const ageMap  = {1:0, 3:1, 7:2, 14:3, 28:4};
+  setAge(e.m.age, ageBtns[ageMap[e.m.age] ?? 4]);
+  onFormChange();
+  switchTab('predictor', document.querySelector('[data-tab=predictor]'));
+  showToast('Mezcla #'+e.id+' cargada en el predictor');
+}
+function clearHistory(){historyList=[];window.savedHistory=[];renderHistory();$('badge-history').textContent=0;}
+
+/* ══ COMPARE ══════════════════════════════════════════════════ */
+const MIX_COLORS = ['#C1272D','#E87722','#00B8D9','#2DBD74','#8b5cf6'];
+
+function addToCompare(){
+  if(!lastResult){showToast('Primero realiza una predicción');return;}
+  if(compareList.length>=20){showToast('Máximo 20 mezclas en el comparador');return;}
+  compareList.push({...lastResult, label:'Mezcla '+(compareList.length+1)});
+  $('badge-compare').textContent = compareList.length;
+  renderCompare();
+  showToast('Mezcla '+compareList.length+' agregada al comparador');
+}
+function clearCompare(){
+  compareList=[];
+  window._apiComparison = null;
+  $('badge-compare').textContent=0;
+  renderCompare();
+  showToast('Comparador limpiado');
+}
+async function loadSavedEvaluationsToCompare(){
+  try{
+    const response = await fetch(API+'/evaluaciones?limit=20');
+    const payload = await response.json();
+    if(!response.ok) throw new Error(payload.detail || 'No se pudieron cargar las evaluaciones');
+    const available = payload.evaluaciones || [];
+    available.forEach(item => {
+      if(compareList.length >= 20) return;
+      const body = item.composition || {};
+      const result = item.result || {};
+      if(body.cement == null || result.resistencia_kgcm2 == null) return;
+      if(compareList.some(current => current.savedId === item.id)) return;
+      compareList.push({body, d:result, savedId:item.id, label:'Guardada '+item.id.slice(0,8)});
+    });
+    $('badge-compare').textContent = compareList.length;
+    renderCompare();
+    showToast(available.length+' evaluaciones revisadas');
+  }catch(error){ showToast('Error: '+error.message, 4000); }
+}
+function updateCompareReferenceOptions(){
+  const select = $('compare-reference');
+  if(!select) return;
+  const previous = +select.value || 0;
+  select.innerHTML = compareList.map((item, index) =>
+    `<option value="${index}">${escapeHtml(item.label || 'Mezcla '+(index+1))}</option>`
+  ).join('');
+  select.value = String(Math.max(0, Math.min(previous, compareList.length - 1)));
+}
+async function compareWithApi(){
+  if(compareList.length < 2){showToast('Agrega al menos 2 mezclas');return;}
+  const status = $('compare-api-status');
+  status.textContent = 'Calculando...';
+  const payload = {
+    mezclas: compareList.map(item => item.body),
+    referencia: +$('compare-reference').value || 0,
+    contexto: {exposicion_ambiental: $('compare-context').value},
+    guardar_comparacion: true,
+    nombre: 'Comparación desde el frontend',
+  };
+  try{
+    const response = await fetch(API+'/comparar', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    const data = await response.json();
+    if(!response.ok) throw new Error(data.detail || 'No se pudo comparar');
+    window._apiComparison = data;
+    status.textContent = `${data.resultados.length} composiciones comparadas`;
+    renderApiComparison(data);
+    showToast('Comparación guardada');
+  }catch(error){
+    status.textContent = '';
+    showToast('Error: '+error.message, 4000);
+  }
+}
+function renderApiComparison(data){
+  compareList = data.resultados.map((item, index) => ({
+    body:item.composicion,
+    d:item,
+    label:item.nombre || 'Mezcla '+(index+1),
+  }));
+  $('badge-compare').textContent = compareList.length;
+  renderCompare();
+}
+async function downloadComparisonPdf(){
+  const data = window._apiComparison;
+  if(!data || !data.resultados || data.resultados.length < 2){
+    showToast('Ejecuta primero una comparación con al menos 2 mezclas'); return;
+  }
+  const payload = {
+    mezclas: data.resultados.map(item => item.composicion),
+    referencia: data.referencia_id - 1,
+    contexto: data.contexto_comun,
+  };
+  try{
+    const response = await fetch(API+'/informes/comparacion.pdf', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(payload)
+    });
+    if(!response.ok) throw new Error('No se pudo generar el PDF');
+    const blob = await response.blob();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'concretoia-comparacion.pdf';
+    link.click();
+    URL.revokeObjectURL(link.href);
+    showToast('PDF de comparación descargado');
+  }catch(error){ showToast('Error: '+error.message, 4000); }
+}
+function removeCompareItem(index){
+  compareList.splice(index,1);
+  $('badge-compare').textContent = compareList.length;
+  renderCompare();
+  showToast('Alternativa eliminada');
+}
+
+function normalizeCompareEntry(entry, index){
+  const body = entry?.body || entry?.composicion || entry?.m || entry?.mixture || {};
+  const raw = entry?.d || entry?.result || entry || {};
+  const resistance = raw.resistencia_kgcm2 ?? raw.f_c_kgcm2 ?? raw.resistencia ?? raw.strength ?? 0;
+  const cost = raw.costo_sol_m3 ?? raw.costo ?? 0;
+  const co2 = raw.co2_kg_m3 ?? raw.co2 ?? 0;
+  const mpa = raw.resistencia_mpa ?? (resistance / 10.197);
+  return {
+    body,
+    d:{
+      ...raw,
+      resistencia_kgcm2:+resistance || 0,
+      resistencia_mpa:+mpa || 0,
+      costo_sol_m3:+cost || 0,
+      co2_kg_m3:+co2 || 0,
+      clasificacion:raw.clasificacion || 'Mezcla comparada',
+    },
+    label:entry?.label || entry?.nombre || `Mezcla ${index+1}`,
+    savedId:entry?.savedId,
+  };
+}
+
+function renderCompare(){
+  compareList = compareList.map(normalizeCompareEntry);
+  const tw=$('compare-table-wrap'), em=$('compare-empty'), cw=$('compare-charts-wrap');
+  if(!compareList.length){
+    tw.hidden=true;
+    em.style.display='flex';
+    cw.hidden=true;
+    const summaryEl = $('compare-summary');
+    if(summaryEl) summaryEl.hidden = true;
+    return;
+  }
+  updateCompareReferenceOptions();
+  tw.hidden=false; em.style.display='none'; cw.hidden=false;
+  const referenceIndex = Math.max(0, Math.min(+($('compare-reference')?.value || 0), compareList.length - 1));
+  const reference = compareList[referenceIndex];
+  const toNumber = (value, fallback=0) => Number.isFinite(+value) ? +value : fallback;
+  const referenceRes = toNumber(reference?.d?.resistencia_kgcm2);
+  const referenceCost = toNumber(reference?.d?.costo_sol_m3);
+  const referenceCO2 = toNumber(reference?.d?.co2_kg_m3);
+
+  const resistanceValues = compareList.map(c=>toNumber(c.d?.resistencia_kgcm2));
+  const costValues = compareList.map(c=>toNumber(c.d?.costo_sol_m3));
+  const co2Values = compareList.map(c=>toNumber(c.d?.co2_kg_m3));
+  const bestResistanceIndex = resistanceValues.indexOf(Math.max(...resistanceValues));
+  const lowestCostIndex = costValues.indexOf(Math.min(...costValues));
+  const lowestCo2Index = co2Values.indexOf(Math.min(...co2Values));
+  const summaryEl = $('compare-summary');
+  if(summaryEl){
+    summaryEl.hidden = false;
+    summaryEl.innerHTML = `
+      <div class="compare-summary-item"><span class="compare-summary-label">Mayor resistencia</span><span class="compare-summary-value decimal">${fmt(resistanceValues[bestResistanceIndex],2)} kg/cm²</span><span style="font-size:10.5px;color:var(--fg-2)">${escapeHtml(compareList[bestResistanceIndex].label)}</span></div>
+      <div class="compare-summary-item"><span class="compare-summary-label">Menor costo</span><span class="compare-summary-value decimal">S/. ${fmt(costValues[lowestCostIndex],2)}</span><span style="font-size:10.5px;color:var(--fg-2)">${escapeHtml(compareList[lowestCostIndex].label)}</span></div>
+      <div class="compare-summary-item"><span class="compare-summary-label">Menor huella CO₂</span><span class="compare-summary-value decimal">${fmt(co2Values[lowestCo2Index],2)} kg</span><span style="font-size:10.5px;color:var(--fg-2)">${escapeHtml(compareList[lowestCo2Index].label)}</span></div>`;
+  }
+
+  const maxRes  = Math.max(1, ...compareList.map(c=>toNumber(c.d?.resistencia_kgcm2)));
+  const maxCost = Math.max(1, ...compareList.map(c=>toNumber(c.d?.costo_sol_m3)));
+  const maxCO2  = Math.max(1, ...compareList.map(c=>toNumber(c.d?.co2_kg_m3)));
+
+  $('compare-table').innerHTML = `
+    <thead><tr>
+      <th>Mezcla</th><th>f'c kg/cm²</th><th>Diferencia f'c</th><th>MPa</th>
+      <th>Costo S/.</th><th>Dif. costo</th><th>CO₂ kg</th><th>Dif. CO₂</th><th>Cemento</th><th>Agua</th><th>Clasificación</th><th></th>
+    </tr></thead>
+    <tbody>${compareList.map((c,i)=>`<tr>
+      <td><span class="mix-dot" style="background:${MIX_COLORS[i%MIX_COLORS.length]}"></span><strong>${c.label}</strong></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-weight:700">${fmt(toNumber(c.d?.resistencia_kgcm2),2)}</td>
+      <td>${i===referenceIndex?'Base':(referenceRes ? ((toNumber(c.d?.resistencia_kgcm2)-referenceRes)/referenceRes*100).toFixed(1)+'%' : '—')}</td>
+      <td style="font-family:'JetBrains Mono',monospace">${fmt(toNumber(c.d?.resistencia_mpa))}</td>
+      <td>S/.${fmt(toNumber(c.d?.costo_sol_m3),2)}</td>
+      <td>${i===referenceIndex?'Base':(referenceCost ? ((toNumber(c.d?.costo_sol_m3)-referenceCost)/referenceCost*100).toFixed(1)+'%' : '—')}</td>
+      <td>${fmt(toNumber(c.d?.co2_kg_m3),2)}</td>
+      <td>${i===referenceIndex?'Base':(referenceCO2 ? ((toNumber(c.d?.co2_kg_m3)-referenceCO2)/referenceCO2*100).toFixed(1)+'%' : '—')}</td>
+      <td>${fmt(toNumber(c.body?.cement),2)} kg</td><td>${fmt(toNumber(c.body?.water),2)} L</td>
+      <td style="font-size:11px;color:var(--fg-2)">${escapeHtml(c.d?.clasificacion || 'Sin clasificar')}</td>
+      <td><button type="button" class="btn-icon" title="Eliminar alternativa" onclick="removeCompareItem(${i})"><i class="bi bi-x-lg"></i></button></td>
+    </tr>`).join('')}</tbody>`;
+  function miniBar(id, vals, maxV, unit){
+    $(id).innerHTML = compareList.map((c,i)=>{
+      const value = toNumber(vals[i]);
+      const width = maxV > 0 ? Math.max(0, Math.min(100, value/maxV*100)) : 0;
+      return `
+      <div class="bar-row">
+        <span class="bar-label" style="color:${MIX_COLORS[i%MIX_COLORS.length]}">${escapeHtml(c.label || 'Mezcla '+(i+1))}</span>
+        <div class="bar-bg"><div class="bar-fill" style="width:${width}%;background:${MIX_COLORS[i%MIX_COLORS.length]}"></div></div>
+        <span class="bar-val">${fmt(value,2)} ${unit}</span>
+      </div>`;
+    }).join('');
+  }
+  miniBar('cc-res',    compareList.map(c=>toNumber(c.d?.resistencia_kgcm2)), maxRes,  'kg/cm²');
+  miniBar('cc-cost',   compareList.map(c=>toNumber(c.d?.costo_sol_m3)),       maxCost, 'S/.');
+  miniBar('cc-co2',    compareList.map(c=>toNumber(c.d?.co2_kg_m3)),          maxCO2,  'kg');
+  miniBar('cc-cement', compareList.map(c=>toNumber(c.body?.cement)),
+    Math.max(1, ...compareList.map(c=>toNumber(c.body?.cement))), 'kg');
+}
+
+/* ══ OPTIMIZE ═════════════════════════════════════════════════ */
+async function optimize(){
+  btnLoad('opt-btn','opt-lbl','opt-spin',true);
+  const body = {
+    resistencia_objetivo_kgcm2: +$('opt-slider').value,
+    agua:        +$('opt-water').value,
+    edad:        +$('opt-age').value,
+    max_cement:  +$('opt-maxcement').value,
+    usar_escoria: $('opt-slag').checked,
+    usar_ceniza:  $('opt-flyash').checked,
+    exposicion_ambiental: $('opt-exposure').value,
+  };
+  try {
+    const res = await fetch(API+'/optimizar',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.detail||'Error '+res.status);}
+    const payload = await res.json();
+    const data = Array.isArray(payload) ? payload : (payload.alternativas || payload.seleccion || []);
+    if(!data.length && payload.seleccion) window._optData = payload.seleccion;
+    window._optExposure = body.exposicion_ambiental;
+    window._optSummary = payload && !Array.isArray(payload) ? payload : null;
+    const total = data.length || 0;
+    const sum = window._optSummary || {};
+    $('opt-result-meta').textContent =
+      `f'c ${body.resistencia_objetivo_kgcm2} kg/cm² · ${body.edad} días · ${total} opciones` +
+      (sum.mezclas_evaluadas ? ` · ${sum.mezclas_factibles} de ${sum.mezclas_evaluadas} mezclas evaluadas cumplen` : '');
+    (sum.advertencias || []).forEach((w, k) => setTimeout(() => showToast(w, 7000), k * 600));
+    $('opt-results').hidden = false;
+    const maxCost = Math.max(...data.map(c=>c.costo_sol_m3), 1);
+    const maxCO2  = Math.max(...data.map(c=>c.co2_kg_m3), 1);
+    const maxRes  = Math.max(...data.map(c=>c.resistencia_kgcm2), 1);
+    const RANKS   = ['Más económica','Alternativa','Opción 3'];
+    $('opt-cards').innerHTML = data.map((c,i)=>`
+      <div class="opt-card ${i===0?'best':''}" onclick="loadOpt(${i})">
+        <div class="opt-card-badge">${i===0?'MEJOR':'#'+(i+1)}</div>
+      <div class="opt-rank">${c.estrategia || RANKS[i] || 'Opción '+(i+1)}</div>
+        <div class="opt-main-val">${fmt(c.resistencia_kgcm2,2).replace(/\.00$/, '')}<span class="opt-main-unit"> kg/cm²</span></div>
+        <div style="font-size:11px;color:var(--fg-2);margin-top:3px">${fmt(c.resistencia_mpa)} MPa · ±${fmt(c.diferencia_pct,1)}% objetivo</div>
+        <div class="opt-props">
+          <div class="opt-prop"><span class="opt-prop-label">Cemento</span><span class="opt-prop-value">${c.cement} kg/m³</span></div>
+          ${c.slag>0?`<div class="opt-prop"><span class="opt-prop-label">Escoria</span><span class="opt-prop-value">${c.slag} kg</span></div>`:''}
+          ${c.flyash>0?`<div class="opt-prop"><span class="opt-prop-label">Ceniza</span><span class="opt-prop-value">${c.flyash} kg</span></div>`:''}
+          <div class="opt-prop"><span class="opt-prop-label">Agua</span><span class="opt-prop-value">${c.water} L/m³</span></div>
+        </div>
+        ${(c.adicion_pct>0 || c.reduccion_co2_pct!==undefined) ? `<div style="font-size:11px;color:var(--fg-2);margin-top:6px">
+          ${c.adicion_pct>0 ? 'Adiciones: '+fmt(c.adicion_pct,0)+'% del cementante' : 'Sin adiciones'}
+          ${c.reduccion_co2_pct!==undefined && c.reduccion_co2_pct!==0 ? ' · <strong style="color:var(--green)">'+(c.reduccion_co2_pct>0?'−':'+')+fmt(Math.abs(c.reduccion_co2_pct),0)+'% CO₂</strong> vs. convencional' : ''}
+        </div>` : ''}
+        <div class="trade-section">
+          <div class="trade-row">
+            <span class="trade-icon">Costo</span>
+            <div class="trade-bar-bg"><div class="trade-bar-fill" style="width:${c.costo_sol_m3/maxCost*100}%;background:var(--yr)"></div></div>
+            <span class="trade-val">S/.${fmt(c.costo_sol_m3,0)}</span>
+          </div>
+          <div class="trade-row">
+            <span class="trade-icon">CO₂</span>
+            <div class="trade-bar-bg"><div class="trade-bar-fill" style="width:${c.co2_kg_m3/maxCO2*100}%;background:var(--green)"></div></div>
+            <span class="trade-val">${fmt(c.co2_kg_m3,0)} kg</span>
+          </div>
+          <div class="trade-row">
+            <span class="trade-icon">Res.</span>
+            <div class="trade-bar-bg"><div class="trade-bar-fill" style="width:${c.resistencia_kgcm2/maxRes*100}%;background:var(--accent-teal)"></div></div>
+            <span class="trade-val">${fmt(c.resistencia_kgcm2,2).replace(/\.00$/, '')}</span>
+          </div>
+        </div>
+        <div class="opt-load-hint">Cargar en predictor</div>
+      </div>`).join('');
+    window._optData = data;
+    showToast(sum.factible===false ? total+' mezclas más cercanas (ninguna cumple todo)' : total+' mezclas óptimas encontradas');
+  } catch(e) {
+    showToast('Error: '+e.message, 4000);
+  }
+  btnLoad('opt-btn','opt-lbl','opt-spin',false);
+}
+
+function loadOpt(i){
+  const c = window._optData[i];
+  $('f-cement').value=c.cement; $('f-slag').value=c.slag; $('f-flyash').value=c.flyash;
+  $('f-water').value=c.water; $('f-superp').value=c.superplasticizer;
+  $('f-coarse').value=c.coarseaggregate; $('f-fine').value=c.fineaggregate;
+  $('f-exposure').value = window._optExposure || 'normal';
+  $('f-slump-value').value = 100;
+  $('f-slump-unit').value = 'mm';
+  $('f-cement-type').value = 'Yura IP';
+  $('f-sika').value = 'Ninguno';
+  updateExposureNote();
+  const ageMap = {1:0, 3:1, 7:2, 14:3, 28:4};
+  const ageBtns = [...document.querySelectorAll('.age-btn')];
+  setAge(c.age, ageBtns[ageMap[c.age] ?? 4]);
+  onFormChange();
+  switchTab('predictor', document.querySelector('[data-tab=predictor]'));
+  setTimeout(predict, 100);
+  showToast('Mezcla óptima cargada — prediciendo...');
+}
+async function addOptimizedToCompare(){
+  const data = window._optData || [];
+  if(!data.length){ showToast('Primero genera alternativas de optimización'); return; }
+
+  let added = 0;
+  for(let index=0; index<data.length && compareList.length<20; index++){
+    const item = data[index];
+    const body = {
+      cement:+item.cement,
+      slag:+(item.slag || 0),
+      flyash:+(item.flyash || 0),
+      water:+item.water,
+      superplasticizer:+(item.superplasticizer || 0),
+      coarseaggregate:+item.coarseaggregate,
+      fineaggregate:+item.fineaggregate,
+      age:+item.age,
+      exposicion_ambiental:window._optExposure || 'normal',
+      asentamiento_objetivo_mm:100,
+      tipo_cemento:'Yura IP',
+      aditivo_sika:'Ninguno',
+      proyecto:'Alternativa '+(index+1),
+      responsable:'Equipo ALINA',
+    };
+
+    try{
+      const response = await fetch(API+'/predecir',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+      if(!response.ok) continue;
+      const result = await response.json();
+      compareList.push({body,d:result,label:'Alternativa '+(index+1),optimized:true});
+      added++;
+    }catch{}
+  }
+
+  $('badge-compare').textContent = compareList.length;
+  renderCompare();
+  showToast(added ? added+' alternativas agregadas al comparador' : 'No se pudo agregar alternativas');
+}
+
+/* ══ INIT ═════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => { checkAPI(); });
+</script>

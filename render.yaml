@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: alina-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: test -f modelo/model_selected.pkl || python modelo/train_model.py; python -m uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: CONCRETOIA_CORS_ORIGINS
+        value: https://example.com
