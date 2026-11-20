@@ -1,0 +1,392 @@
+CONCRETOIA
+Sistema inteligente para la formulacion y optimizacion de mezclas de concreto
+
+1. OBJETIVO DEL SISTEMA
+
+ConcretoIA es un prototipo de apoyo a la decision para diseñar mezclas de concreto.
+Su objetivo es ayudar a comparar dosificaciones considerando:
+
+- Resistencia a la compresion.
+- Relacion agua/cementante.
+- Trabajabilidad mediante asentamiento.
+- Durabilidad frente a sulfatos, cloruros y medios acidos.
+- Costo estimado por metro cubico.
+- Huella de carbono estimada.
+- Uso de cementantes suplementarios y aditivos Sika.
+
+El sistema no reemplaza los ensayos de laboratorio ni la aprobacion del profesional
+responsable del diseño estructural.
+
+
+2. COMO INICIAR EL SISTEMA
+
+Se necesitan dos terminales abiertas en la carpeta del proyecto:
+
+Terminal 1 - Backend:
+
+    cd C:\Users\ANTONY\Desktop\ConcretoIA
+    python -m uvicorn backend.main:app --reload --port 8000
+
+Terminal 2 - Frontend:
+
+    cd C:\Users\ANTONY\Desktop\ConcretoIA
+    python -m http.server 5500 --directory frontend
+
+Luego se abre en el navegador:
+
+    http://localhost:5500
+
+La documentacion tecnica de la API se encuentra en:
+
+    http://localhost:8000/docs
+
+Para detener cualquiera de los servidores se presiona Ctrl + C en su terminal.
+
+
+3. INSTALACION DE DEPENDENCIAS
+
+El proyecto usa Python 3.12. Las dependencias estan definidas en
+requirements.txt.
+
+Para instalarlas:
+
+    python -m pip install -r requirements.txt
+
+Las principales librerias son:
+
+- FastAPI: crea la API del backend.
+- Uvicorn: ejecuta el servidor web.
+- XGBoost / CatBoost / ExtraTrees: predicen la resistencia (se elige el mejor por
+  validacion cruzada).
+- Scikit-learn: escala los datos y calcula metricas.
+- NumPy y pandas: procesan los datos.
+- Joblib: guarda y carga el modelo entrenado.
+
+
+4. ENTRENAMIENTO DEL MODELO
+
+El archivo modelo/train_model.py entrena el modelo de machine learning.
+
+Para entrenarlo:
+
+    python modelo\train_model.py
+
+El entrenamiento realiza estos pasos:
+
+1. Busca el archivo modelo/concrete_data.csv.
+2. Lee las columnas de materiales, agua, agregados y edad.
+3. Usa csMPa como variable objetivo.
+4. Divide los datos en entrenamiento y prueba.
+5. Normaliza las variables mediante StandardScaler.
+6. Entrena un XGBRegressor con 300 estimadores.
+7. Calcula R2, MAE, RMSE y validacion cruzada.
+8. Guarda los siguientes archivos:
+
+   - modelo/model_xgboost.pkl
+   - modelo/scaler.pkl
+   - modelo/model_meta.json
+
+El modelo actual fue entrenado con ocho variables:
+
+- cement: cemento en kg/m3.
+- slag: escoria en kg/m3.
+- flyash: ceniza volante en kg/m3.
+- water: agua en litros por m3.
+- superplasticizer: superplastificante en kg/m3.
+- coarseaggregate: agregado grueso en kg/m3.
+- fineaggregate: agregado fino en kg/m3.
+- age: edad de ensayo en dias.
+
+
+5. PASO A PASO DEL PREDICTOR
+
+En la pestaña Predictor se ingresan los datos de una mezcla.
+
+5.1 Cementantes
+
+Se indican las cantidades de cemento, escoria, ceniza volante y superplastificante.
+Estos valores son enviados al modelo de resistencia.
+
+5.2 Tipo de cemento y aditivo
+
+El usuario puede indicar el tipo de cemento y seleccionar un producto Sika de las
+fichas consideradas en el proyecto. Los productos incluidos son:
+
+- Sika Plast-326.
+- Sika Plastiment TM-12.
+- Sika Air.
+- Sikacem Plastificante.
+- Sikament RB 2040.
+- Sika Plastiment 70 PE.
+
+Los productos acelerantes fueron excluidos del alcance actual.
+
+Estas selecciones se muestran en el resultado y sirven para trazabilidad y
+recomendaciones. El modelo actual aun no aprendio directamente el efecto
+de cada producto porque esas variables no estaban en el dataset original.
+
+5.3 Agua y agregados
+
+Se ingresan el agua, el agregado grueso y el agregado fino.
+
+5.4 Asentamiento
+
+El asentamiento objetivo se ingresa en milimetros.
+
+Ejemplos:
+
+- 75 mm: mezcla de baja trabajabilidad.
+- 100 mm: valor de referencia del prototipo.
+- 150 mm: mezcla mas fluida.
+
+El sistema muestra una recomendacion, pero el asentamiento final debe comprobarse
+mediante el ensayo de cono de Abrams.
+
+5.5 Edad de ensayo
+
+La version actual permite seleccionar como maximo 28 dias:
+
+- 1 dia.
+- 3 dias.
+- 7 dias.
+- 28 dias.
+
+5.6 Exposicion ambiental
+
+El usuario puede seleccionar:
+
+- Sin exposicion especial.
+- Sulfatos altos en suelo o agua.
+- Cloruros o ambiente marino.
+- Medio acido.
+
+Esta seleccion no modifica directamente la prediccion del modelo. Activa una
+capa de evaluacion de durabilidad que revisa la relacion agua/cementante, la
+resistencia minima orientativa, el cemento recomendado y las advertencias.
+
+
+6. CALCULO DE LA RELACION AGUA/CEMENTANTE
+
+El sistema calcula la relacion agua/materiales cementantes (a/mc) como define la
+NTE E.060:
+
+    agua / (cemento + escoria + ceniza volante)
+
+(Versiones anteriores ponderaban la escoria con 0.4 y la ceniza con 0.3 sin
+sustento normativo, lo que sobrestimaba la a/c de las mezclas con adiciones.)
+
+Esta relacion se muestra en tiempo real.
+
+Una relacion alta puede aumentar la trabajabilidad, pero normalmente reduce la
+resistencia y la durabilidad. Por eso el sistema genera advertencias cuando se
+superan los valores orientativos del perfil ambiental elegido.
+
+Los limites mostrados son orientativos y deben confirmarse con la NTE E.060,
+el estudio de suelo y el responsable del diseño.
+
+
+7. PREDICCION DE RESISTENCIA
+
+Cuando se presiona Predecir Resistencia, el frontend envia los datos al endpoint:
+
+    POST /predecir
+
+El backend realiza estos pasos:
+
+1. Valida rangos y tipos de datos con Pydantic.
+2. Extrae las ocho variables que conoce el modelo.
+3. Aplica el scaler guardado durante el entrenamiento.
+4. Ejecuta el XGBoost.
+5. Obtiene la resistencia en MPa.
+6. Convierte el resultado a kg/cm2 usando 10.197.
+7. Clasifica el concreto por resistencia.
+8. Calcula costo y huella de carbono.
+9. Calcula la relacion agua/cementante.
+10. Evalua durabilidad y trabajabilidad.
+11. Devuelve todos los resultados al frontend.
+
+El resultado muestra:
+
+- Resistencia en MPa.
+- Resistencia en kg/cm2.
+- Clasificacion del concreto.
+- Curva de madurez hasta 28 dias.
+- Costo estimado.
+- Huella de carbono.
+- Relacion agua/cementante.
+- Exposicion y recomendaciones de durabilidad.
+- Asentamiento objetivo y control requerido.
+
+
+8. MODULO DE DURABILIDAD
+
+El modulo de durabilidad usa perfiles orientativos para generar advertencias.
+
+Para sulfatos recomienda confirmar la severidad mediante un estudio de suelo y
+considerar cemento resistente a sulfatos o un sistema aprobado.
+
+Para cloruros recomienda controlar permeabilidad, recubrimiento, curado y
+proteccion contra el ingreso de cloruros.
+
+Para medios acidos advierte que cambiar solamente el cemento puede no ser
+suficiente. Puede ser necesario utilizar barreras, revestimientos o materiales
+resistentes al ataque acido.
+
+La NTE E.050 es importante para conocer las condiciones del suelo y los agentes
+agresivos. La NTE E.060 define requisitos del concreto armado, resistencia,
+relacion agua/cementante y durabilidad.
+
+
+9. MODULO DE OPTIMIZACION
+
+En la pestaña Optimizador se define:
+
+- Resistencia objetivo.
+- Agua.
+- Edad, con maximo de 28 dias.
+- Cemento maximo.
+- Uso de escoria.
+- Uso de ceniza volante.
+- Exposicion ambiental.
+
+El endpoint utilizado es:
+
+    POST /optimizar
+
+El sistema muestrea miles de dosificaciones (30 000 por defecto, con semilla fija para
+que el resultado sea reproducible), predice la resistencia de todas en un solo lote
+con el modelo activo y se queda solo con las que:
+
+- Superan la resistencia objetivo mas un margen igual al error medio (MAE) del
+  modelo, para no depender de una prediccion justa.
+- Cumplen las 9 reglas tecnicas y la relacion a/mc maxima del perfil de exposicion.
+  Si el perfil exige mas resistencia que el objetivo (p. ej. sulfatos: 280 kg/cm2),
+  se optimiza para ese valor y se avisa.
+- Respetan lo pedido: agua, edad, cemento maximo, uso de escoria y de ceniza.
+- Estan dentro del rango de datos con que se entreno el modelo (no extrapola).
+
+Devuelve hasta 10 alternativas distintas entre si, con estrategias:
+
+- Menor costo.
+- Menor huella de CO2.
+- Mejor equilibrio costo-CO2.
+- Mas cercana al objetivo.
+
+Cada alternativa indica el porcentaje de adiciones (escoria + ceniza) y, frente a la
+mejor mezcla convencional sin adiciones encontrada en el mismo muestreo, el ahorro
+de CO2 y de costo. Esto responde directamente al reto de cementos altamente
+adicionados. Si ninguna mezcla cumple, el sistema lo declara en 'advertencias' y
+muestra las mas cercanas en lugar de inventar un resultado.
+
+Si se selecciona una exposicion especial, el sistema descarta mezclas que no
+cumplen los umbrales orientativos configurados para ese perfil.
+
+
+10. MODULO DE COMPARACION
+
+Despues de una prediccion se puede agregar la mezcla al comparador.
+
+El comparador permite revisar varias mezclas lado a lado mediante:
+
+- Resistencia.
+- Costo.
+- CO2.
+- Cemento.
+- Agua.
+- Clasificacion.
+
+Esto ayuda a elegir una alternativa segun las prioridades del proyecto.
+
+
+11. HISTORIAL
+
+Cada prediccion se guarda temporalmente en la sesion del navegador.
+El historial permite volver a cargar una mezcla y revisar sus valores.
+
+Actualmente el historial no usa una base de datos permanente. Si se requiere una
+version formal, debe agregarse persistencia con una base de datos y un identificador
+de usuario o proyecto.
+
+
+12. REFERENCIAS
+
+El sistema incluye una pestaña de referencias con:
+
+- UCI Machine Learning Repository - Concrete Compressive Strength Dataset.
+- Yeh, I.-C. (1998), estudio sobre resistencia de concreto de alto desempeño.
+- Reglamento Nacional de Edificaciones del Peru, NTE E.050.
+- Reglamento Nacional de Edificaciones del Peru, NTE E.060.
+- ACI 318, Building Code Requirements for Structural Concrete.
+- Fichas tecnicas Sika compartidas por el equipo.
+- Documentacion oficial de XGBoost.
+
+Las referencias respaldan la metodologia y las recomendaciones. No convierten
+automaticamente las fichas tecnicas en variables aprendidas por el modelo.
+
+
+13. LIMITACIONES ACTUALES
+
+- El modelo se entreno con el dataset publico de Yeh (UCI, 1998; 1030 ensayos reales,
+  25 replicas exactas descartadas) y no con ensayos propios de Yura. No contempla
+  cemento IP/puzolanico ni aditivos Sika. Una version anterior del proyecto usaba
+  un dataset sintetico (52% de las filas fijadas en 2 MPa), por lo que sus
+  metricas no eran validas; train_model.py ahora rechaza ese tipo de datos.
+- Las predicciones de resistencia tienen un error medio de ~2.7 MPa (~27 kg/cm2).
+- Sulfatos, cloruros, pH, cemento y aditivo Sika aun no son variables aprendidas
+  directamente por el modelo.
+- La trabajabilidad se verifica con reglas y debe validarse con slump real.
+- Las recomendaciones normativas son orientativas hasta incorporar las tablas
+  oficiales completas y su validacion tecnica.
+- El costo y CO2 dependen de factores configurados en el backend y deben ajustarse
+  con precios e inventarios reales.
+- La mezcla final debe ser validada mediante ensayos de laboratorio.
+
+
+14. MEJORAS PARA UNA VERSION FORMAL
+
+Para convertir el prototipo en un sistema formal se recomienda:
+
+1. Construir un dataset propio con mezclas Yura.
+2. Registrar tipo de cemento, aditivo, dosificacion, slump, curado, pH,
+   sulfatos, cloruros y resultados a 1, 3, 7 y 28 dias.
+3. Reentrenar el modelo con esas variables.
+4. Validar el modelo con ensayos independientes.
+5. Incorporar las tablas oficiales completas de NTE E.050 y NTE E.060.
+6. Añadir intervalos de confianza y control de versiones del modelo.
+7. Guardar proyectos y resultados en una base de datos.
+8. Generar un informe PDF con dosificacion, fuentes, alertas y aprobaciones.
+
+
+15. COMPARACION DE MODELOS
+
+El entrenamiento compara automaticamente tres algoritmos con validacion cruzada:
+
+- XGBoost.
+- CatBoost.
+- ExtraTrees.
+
+Se calculan CV R2, MAE y RMSE para cada uno. El sistema selecciona el modelo con
+mayor CV R2 promedio y guarda el resultado en:
+
+    modelo/model_selected.pkl
+
+Tambien se conserva model_xgboost.pkl por compatibilidad. Los .pkl no se incluyen
+en el paquete: se generan al ejecutar instalar.bat (o train_model.py) con las
+versiones de librerias de cada equipo. El benchmark se guarda
+en model_meta.json y se muestra en la pestaña Modelo ML.
+
+Para instalar la nueva dependencia y ejecutar la comparacion:
+
+    python -m pip install -r requirements.txt
+    python modelo\train_model.py
+
+
+16. RESUMEN PARA LA PRESENTACION
+
+ConcretoIA es un sistema de apoyo a la decision que combina machine learning,
+reglas de durabilidad y optimizacion multiobjetivo para proponer mezclas de
+concreto considerando resistencia, trabajabilidad, costo y huella de carbono.
+
+El sistema reduce iteraciones iniciales y facilita la comparacion de alternativas,
+pero la dosificacion final debe verificarse mediante ensayos de laboratorio y ser
+aprobada por el profesional responsable.

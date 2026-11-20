@@ -1,0 +1,60 @@
+{
+  "modelo": "XGBoost",
+  "n_estimators": 300,
+  "max_depth": 6,
+  "learning_rate": 0.05,
+  "subsample": 0.8,
+  "colsample_bytree": 0.8,
+  "metricas": {
+    "r2_test": 0.9404,
+    "mae_mpa": 2.683,
+    "rmse_mpa": 4.215,
+    "cv_r2_mean": 0.9345,
+    "cv_r2_std": 0.0077
+  },
+  "benchmark": {
+    "XGBoost": {
+      "r2_test": 0.9404,
+      "mae_mpa": 2.6826,
+      "rmse_mpa": 4.2151,
+      "cv_r2_mean": 0.9345,
+      "cv_r2_std": 0.0077
+    },
+    "CatBoost": {
+      "r2_test": 0.9223,
+      "mae_mpa": 3.202,
+      "rmse_mpa": 4.8138,
+      "cv_r2_mean": 0.924,
+      "cv_r2_std": 0.0075
+    },
+    "ExtraTrees": {
+      "r2_test": 0.9076,
+      "mae_mpa": 3.4819,
+      "rmse_mpa": 5.2492,
+      "cv_r2_mean": 0.9087,
+      "cv_r2_std": 0.0107
+    }
+  },
+  "features": [
+    "cement",
+    "slag",
+    "flyash",
+    "water",
+    "superplasticizer",
+    "coarseaggregate",
+    "fineaggregate",
+    "age"
+  ],
+  "n_samples_train": 804,
+  "n_samples_test": 201,
+  "importancia": {
+    "cement": 0.1882,
+    "slag": 0.0869,
+    "flyash": 0.0886,
+    "water": 0.1071,
+    "superplasticizer": 0.1111,
+    "coarseaggregate": 0.04,
+    "fineaggregate": 0.0671,
+    "age": 0.311
+  }
+}

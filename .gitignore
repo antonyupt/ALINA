@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+catboost_info/
+concretoia.db
+modelo/*.pkl
+report-*.pdf
+comparacion-*.pdf
+evaluacion-*.pdf
